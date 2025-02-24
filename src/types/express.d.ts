@@ -1,10 +1,10 @@
 import { CsrfTokenGenerator } from "csrf-sync";
-import { PayloadGenerateJWTToken } from "@/utils/jwt.ts";
+import { PayloadGenerateJWTToken } from "../libs/jwt";
 
 declare global {
 	namespace Express {
 		interface Request {
-			user?: PayloadGenerateJWTToken;
+			user: PayloadGenerateJWTToken;
 			csrfToken: CsrfTokenGenerator;
 		}
 	}

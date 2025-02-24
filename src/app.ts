@@ -11,6 +11,7 @@ import logger from "./libs/logger";
 import prisma from "./configs/database";
 import { errorHandler } from "./middlewares/error.middleware";
 import { authRoutes } from "./modules/auth/auth.routes";
+import { adminRouter } from "./modules/admin/routes";
 
 // Mengatasi deprecation warning untuk punycode
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -84,16 +85,16 @@ app.use(
 );
 
 // // 5. Enhanced CSRF Protection
-const { csrfSynchronisedProtection, generateToken } = csrfSync({
-	getTokenFromRequest: (req) => {
-		// Ambil token dari header
-		const token = req.headers["x-csrf-token"];
-		return Array.isArray(token) ? token[0] : token || "";
-	},
-	size: 64, // Panjang token 64 bytes
-	ignoredMethods: ["GET", "HEAD", "OPTIONS"],
-});
-app.use(csrfSynchronisedProtection);
+// const { csrfSynchronisedProtection, generateToken } = csrfSync({
+// 	getTokenFromRequest: (req) => {
+// 		// Ambil token dari header
+// 		const token = req.headers["x-csrf-token"];
+// 		return Array.isArray(token) ? token[0] : token || "";
+// 	},
+// 	size: 64, // Panjang token 64 bytes
+// 	ignoredMethods: ["GET", "HEAD", "OPTIONS"],
+// });
+// app.use(csrfSynchronisedProtection);
 
 // 6. Body Parser with Sanitization
 app.use(express.json({ limit: "10kb" }));
@@ -109,6 +110,7 @@ app.use((req, res, next) => {
 // 8. Routes
 // app.use("/api/v1/application", applicationRouter);
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/admin", adminRouter);
 
 // 9. Security Headers Middleware
 app.use((req, res, next) => {
@@ -124,12 +126,12 @@ app.get("/health", (req, res) => {
 });
 
 // 11. CSRF Token Endpoint
-app.get("/api/v1/csrf-token", (req, res) => {
-	res.json({
-		csrfToken: generateToken(req),
-		timestamp: new Date().toISOString(),
-	});
-});
+// app.get("/api/v1/csrf-token", (req, res) => {
+// 	res.json({
+// 		csrfToken: generateToken(req),
+// 		timestamp: new Date().toISOString(),
+// 	});
+// });
 
 // 12. Enhanced Error Handling
 app.use(errorHandler);

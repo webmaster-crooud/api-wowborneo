@@ -4,7 +4,7 @@ import { ChangePasswordInterface, LoginInterface, RegisterInterface } from "../.
 import prisma from "../../configs/database";
 import { ApiError } from "../../libs/apiResponse";
 import { env } from "../../configs/env";
-import { formatIndonesia, formatUnix } from "../../libs/main";
+import { formatIndonesia, formatUnix } from "../../libs/moment";
 import { generateAccessToken, generateRefreshToken, PayloadGenerateJWTToken } from "../../libs/jwt";
 
 // Jangan lupa tambahkan max attempt

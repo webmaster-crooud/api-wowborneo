@@ -1,0 +1,1 @@
+export type STATUS = "FAVOURITED" | "ACTIVED" | "PENDING" | "BLOCKED" | "DELETED";

@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,77 +8,175 @@ datasource db {
 }
 
 model User {
-  id String @id @db.VarChar(100) @default(cuid())
-  firstName String @db.VarChar(100) @map("first_name")
-  lastName String? @db.VarChar(100) @map("last_name")
-  email String @db.VarChar(100) @unique
-  phone String @db.VarChar(15) @unique
-  status STATUS @default(PENDING)
-  createdAt DateTime @db.Timestamp() @map("created_at")
-  updatedAt DateTime @db.Timestamp() @map("updated_at")
+  id         String      @id @db.VarChar(100) @default(cuid())
+  firstName  String      @db.VarChar(100) @map("first_name")
+  lastName   String?     @db.VarChar(100) @map("last_name")
+  email      String      @db.VarChar(100) @unique
+  phone      String      @db.VarChar(15) @unique
+  status     STATUS      @default(PENDING)
+  createdAt  DateTime    @db.Timestamp() @map("created_at")
+  updatedAt  DateTime    @db.Timestamp() @map("updated_at")
 
-  account Account?
+  account    Account?
+  imageUsers ImageUser[]
+  
   @@map("users")
 }
 
 model Account {
-  id String @db.VarChar(100) @id @default(cuid())
-  email String @db.VarChar(100) @unique
-  userId String @db.VarChar(100) @unique @map("user_id")
-  password String? @db.VarChar(100)
-  ip String @db.Text
-  userAgent String @db.Text @map("user_agent")
-  googleId String? @db.Text @map("google_id")
-  status STATUS @default(PENDING)
-  roleId Int @db.Int @map("role_id")
-  createdAt DateTime @db.Timestamp() @map("created_at")
-  updatedAt DateTime @db.Timestamp() @map("updated_at")
+  id          String      @db.VarChar(100) @id @default(cuid())
+  email       String      @db.VarChar(100) @unique
+  userId      String      @db.VarChar(100) @unique @map("user_id")
+  password    String?     @db.VarChar(100)
+  ip          String      @db.Text
+  userAgent   String      @db.Text @map("user_agent")
+  googleId    String?     @db.Text @map("google_id")
+  status      STATUS      @default(PENDING)
+  roleId      Int         @db.Int @map("role_id")
+  createdAt   DateTime    @db.Timestamp() @map("created_at")
+  updatedAt   DateTime    @db.Timestamp() @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id])
-  role Role @relation(fields: [roleId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+  role        Role        @relation(fields: [roleId], references: [id])
   emailVerify EmailVerify[]
   accountRefreshToken AccountRefreshToken?
+
   @@map("accounts")
 }
 
-model EmailVerify{
-  id Int @db.Int @id @default(autoincrement())
-  accountId String @db.VarChar(100) @map("account_id")
-  token String @db.VarChar(6) @unique
-  type TYPEEMAILVERIFY @default(REGISTER)
-  createdAt DateTime @db.Timestamp() @map("created_at")
-  updatedAt DateTime @db.Timestamp() @map("updated_at")
-  expiredAt DateTime @db.Timestamp() @map("expired_at")
+model EmailVerify {
+  id         Int         @db.Int @id @default(autoincrement())
+  accountId  String      @db.VarChar(100) @map("account_id")
+  token      String      @db.VarChar(6) @unique
+  type       TYPEEMAILVERIFY @default(REGISTER)
+  createdAt  DateTime    @db.Timestamp() @map("created_at")
+  updatedAt  DateTime    @db.Timestamp() @map("updated_at")
+  expiredAt  DateTime    @db.Timestamp() @map("expired_at")
 
-  accounts Account @relation(fields: [accountId], references: [id])
+  accounts   Account     @relation(fields: [accountId], references: [id])
+  
   @@map("email_verify")
 }
 
 model AccountRefreshToken {
-  email String @db.VarChar(100) @unique
-  token String @db.Text
-  createdAt DateTime @db.Timestamp() @map("created_at")
-  updatedAt DateTime @db.Timestamp() @map("updated_at")
-  expiredAt DateTime @db.Timestamp() @map("expired_at")
+  email      String      @db.VarChar(100) @unique
+  token      String      @db.Text
+  createdAt  DateTime    @db.Timestamp() @map("created_at")
+  updatedAt  DateTime    @db.Timestamp() @map("updated_at")
+  expiredAt  DateTime    @db.Timestamp() @map("expired_at")
 
-  accountId String @db.VarChar(100) @map("account_id") @unique
-  account Account @relation(fields: [accountId], references: [id])
+  accountId  String      @db.VarChar(100) @map("account_id") @unique
+  account    Account     @relation(fields: [accountId], references: [id])
+  
   @@map("account_refresh_token")
 }
 
 model Role {
-  id Int @db.Int @default(autoincrement()) @id
-  name String @db.VarChar(100) @unique @default("MEMBER")
-  description String? @db.Text
-  status STATUS @default(PENDING)
-  createdAt DateTime @db.Timestamp() @map("created_at")
-  updatedAt DateTime @db.Timestamp() @map("updated_at")
+  id          Int         @db.Int @default(autoincrement()) @id
+  name        String      @db.VarChar(100) @unique @default("MEMBER")
+  description String?     @db.Text
+  status      STATUS      @default(PENDING)
+  createdAt   DateTime    @db.Timestamp() @map("created_at")
+  updatedAt   DateTime    @db.Timestamp() @map("updated_at")
 
-  accounts Account[]
+  accounts    Account[]
+  
   @@map("roles")
 }
 
+model Cruise {
+  id         String      @db.VarChar(50) @default(cuid()) @id
+  slug       String      @db.VarChar(100) @unique
 
+  title      String      @db.VarChar(100) @unique
+  subTitle   String?     @db.VarChar(100)
+  description String?    @db.Text
+  departure  String?     @db.VarChar(100)
+  duration   String      @db.VarChar(100)
+
+  status     STATUS      @default(ACTIVED)
+
+  createdAt  DateTime    @db.Timestamp() @map("created_at")
+  updatedAt  DateTime    @db.Timestamp() @map("updated_at")
+
+  imageCruises ImageCruise[]
+  destinations Destination[]
+  
+  @@map("river_cruise")
+  @@index([updatedAt])
+}
+
+model Destination {
+  id         Int         @id @db.Int @default(autoincrement())
+  cruiseId   String      @db.VarChar(50)
+  title      String      @db.VarChar(100) @unique
+  description String?    @db.Text
+  days       String      @db.VarChar(100)
+  
+  imageCover String?     @db.Text @map("image_cover")
+  alt        String?     @db.VarChar(100)
+
+  status     STATUS      @default(ACTIVED)
+  createdAt  DateTime    @db.Timestamp() @map("created_at")
+  updatedAt  DateTime    @db.Timestamp() @map("updated_at")
+
+  cruise     Cruise      @relation(fields: [cruiseId], references: [id])
+  
+  @@map("destination")
+  @@index([cruiseId])
+}
+
+model ImageCruise { 
+  id         Int         @db.Int @id @default(autoincrement())
+  imageType  IMAGETYPE   @map("image_type")
+  alt        String?     @db.VarChar(100)
+  description String?    @db.Text
+
+  filename   String      @db.VarChar(255)
+  source     String?     @db.Text
+  mimetype   String      @db.VarChar(100)
+  size       Int         @db.Int
+
+  cruiseId   String      @db.VarChar(50)
+
+  cruise     Cruise      @relation(fields: [cruiseId], references: [id], onDelete: Cascade)
+  
+  @@map("image_cruises")
+  @@index([cruiseId])
+  @@index([filename])
+}
+
+model ImageUser { 
+  id         Int         @db.Int @id @default(autoincrement())
+  imageType  IMAGETYPE   @map("image_type")
+  alt        String?     @db.VarChar(100)
+  description String?    @db.Text
+  
+  filename   String      @db.VarChar(255)
+  source     String?     @db.Text
+  mimetype   String      @db.VarChar(100)
+  size       Int         @db.Int
+
+  userId     String      @db.VarChar(100)
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("image_users")
+  @@index([userId])
+  @@index([filename])
+}
+
+model Log {
+  id         Int         @db.Int @id @default(autoincrement())
+  accountId  String      @db.VarChar(100) @map("account_id")
+  action     String      @db.VarChar(100)
+  table      String      @db.VarChar(100)
+  status     STATUSLOG
+  createdAt  DateTime    @db.Timestamp() @map("created_at")
+  
+  @@map("logs")
+  @@index([accountId])
+}
 
 enum STATUS {
   FAVOURITED
@@ -94,8 +186,18 @@ enum STATUS {
   DELETED
 }
 
+enum STATUSLOG {
+  SUCCESS
+  FAILED
+}
+
 enum TYPEEMAILVERIFY {
   REGISTER
   FORGOT_PASSWORD
   CHANGE_EMAIL
+}
+
+enum IMAGETYPE {
+  COVER
+  PHOTO
 }
