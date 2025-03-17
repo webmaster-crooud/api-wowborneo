@@ -55,7 +55,20 @@ async function actionController(req: Request, res: Response) {
 	}
 }
 
-export default { createController, updateController, actionController };
+async function listController(req: Request, res: Response) {
+	try {
+		// const { search, filter, favourite, deleted } = req.query;
+		const { search } = req.query;
+		const searching: string | undefined = search !== "undefined" ? search?.toString() : undefined;
+		console.log(searching);
+		const response = await destinationService.list(searching);
+		ApiResponse.sendSuccess(res, response, StatusCodes.OK);
+	} catch (error) {
+		ApiResponse.sendError(res, error as Error);
+	}
+}
+
+export default { createController, updateController, actionController, listController };
 
 // async function getController(req: Request, res: Response) {
 // 	try {

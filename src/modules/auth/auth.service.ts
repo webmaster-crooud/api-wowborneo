@@ -6,6 +6,9 @@ import { ApiError } from "../../libs/apiResponse";
 import { env } from "../../configs/env";
 import { formatIndonesia, formatUnix } from "../../libs/moment";
 import { generateAccessToken, generateRefreshToken, PayloadGenerateJWTToken } from "../../libs/jwt";
+import { OTPSenderTemplate } from "../../templates/OTPSender.template";
+import { sendEmail } from "../../libs/mailersend";
+import { ForgotPasswordTemplate } from "../../templates/ForgotPassword.template";
 
 // Jangan lupa tambahkan max attempt
 async function register(body: RegisterInterface, ip: string | undefined, userAgent: string) {
@@ -23,7 +26,7 @@ async function register(body: RegisterInterface, ip: string | undefined, userAge
 	const now = new Date();
 	const salt = await crypt.genSalt(parseInt(env.BCRYPT_ROUND));
 	const newPasswprd = crypt.hashSync(body.password, parseInt(salt));
-	const otp = Math.floor(100000 + Math.random() * 900000).toString();
+	const otp = Math.floor(10000 + Math.random() * 90000).toString();
 
 	const result = await prisma.user.create({
 		data: {
@@ -85,21 +88,23 @@ async function register(body: RegisterInterface, ip: string | undefined, userAge
 		},
 	});
 
-	// const content = OTPSenderTemplate({
-	//     firstName: result.firstName,
-	//     otp: otp,
-	//     companyName: 'Laborare Indonesia',
-	// });
-	// await emailService({
-	//     email: result.email,
-	//     firstName: result.firstName,
-	//     lastName: result.lastName || '',
-	//     subject: 'Verifikasi Pendafataran Member',
-	//     contentHtml: content,
-	// });
+	const content = OTPSenderTemplate({
+		firstName: result.firstName,
+		lastName: `${result.lastName}`,
+		subject: "Verification Register Member",
+		otp: otp,
+	});
+	await sendEmail({
+		email: result.email,
+		firstName: result.firstName,
+		lastName: result.lastName || "",
+		subject: "Verification Register Member",
+		content: content,
+	});
 
 	// const message = `Kode verifikasi pendaftaran: \n\n*${result.account?.emailVerify[0].token}* \n\n*Laborare Indonesia*\n_https://laborare.my.id_`;
 	// await whatsappSenderOTP(result.phone, message);
+
 	return { result };
 }
 
@@ -189,7 +194,7 @@ async function resendEmailVerify(email: string) {
 	if (formatUnix(account.emailVerify[0].expiredAt) > formatUnix(new Date())) throw new ApiError(StatusCodes.BAD_REQUEST, `Kode OTP dapat dikirim kembali pada: ${formatIndonesia(account.emailVerify[0].expiredAt)}`);
 	const emailVerifyId = account.emailVerify[0].id;
 
-	const otp = Math.floor(100000 + Math.random() * 900000).toString();
+	const otp = Math.floor(10000 + Math.random() * 90000).toString();
 	const result = await prisma.emailVerify.update({
 		where: {
 			id: emailVerifyId,
@@ -219,20 +224,19 @@ async function resendEmailVerify(email: string) {
 	const firstName = result.accounts.user.firstName;
 	const lastName = result.accounts.user.lastName || "";
 
-	// const content = OTPSenderTemplate({
-	// 	firstName: firstName,
-	// 	otp: otp,
-	// 	companyName: "Laborare Indonesia",
-	// });
-	// await emailService({
-	// 	email: emailUser,
-	// 	firstName: firstName,
-	// 	lastName: lastName,
-	// 	subject: "Verifikasi Pendafataran Member",
-	// 	contentHtml: content,
-	// });
-	// const message = `Kode verifikasi pendaftaran: \n\n*${otp}* \n\n*Laborare Indonesia*\n_https://laborare.my.id_`;
-	// await whatsappSenderOTP(result.accounts.user.phone, message);
+	const content = OTPSenderTemplate({
+		firstName: firstName,
+		lastName: lastName,
+		subject: "Resend Email Verification",
+		otp: otp,
+	});
+	await sendEmail({
+		email: emailUser,
+		firstName: firstName,
+		lastName: lastName || "",
+		subject: "Resend Email Verification",
+		content: content,
+	});
 }
 
 async function forgotPassword(email: string) {
@@ -268,52 +272,67 @@ async function forgotPassword(email: string) {
 	}
 
 	const now = new Date();
-	const otp = Math.floor(100000 + Math.random() * 900000).toString();
-	const result = await prisma.emailVerify.create({
-		data: {
-			token: otp,
+
+	const checkVerify = await prisma.emailVerify.findFirst({
+		where: {
 			accountId: checkAccount.id,
 			type: "FORGOT_PASSWORD",
-			createdAt: now,
-			updatedAt: now,
-			expiredAt: new Date(now.getTime() + 5 * 60 * 1000),
 		},
 		select: {
-			accounts: {
-				select: {
-					user: {
-						select: {
-							firstName: true,
-							lastName: true,
-							email: true,
+			expiredAt: true,
+			createdAt: true,
+		},
+	});
+	if (checkVerify) {
+		if (formatUnix(checkVerify.expiredAt) > formatUnix(new Date())) throw new ApiError(StatusCodes.BAD_REQUEST, `Email has been sent at: ${formatIndonesia(checkVerify.createdAt)}, please wait until: ${formatIndonesia(checkVerify.expiredAt)}`);
+	} else {
+		const otp = Math.floor(10000 + Math.random() * 90000).toString();
+		const result = await prisma.emailVerify.create({
+			data: {
+				token: otp,
+				accountId: checkAccount.id,
+				type: "FORGOT_PASSWORD",
+				createdAt: now,
+				updatedAt: now,
+				expiredAt: new Date(now.getTime() + 5 * 60 * 1000),
+			},
+			select: {
+				accounts: {
+					select: {
+						user: {
+							select: {
+								firstName: true,
+								lastName: true,
+								email: true,
+							},
 						},
 					},
 				},
 			},
-		},
-	});
+		});
 
-	const redirect = `${env.HOME_URL}/reset-password/${checkAccount.email}?token=${otp}&notification=${encodeURIComponent("Silahkan masukan password baru anda")}`;
+		const redirect = `${env.AUTH_URL}/reset-password/${checkAccount.email}?token=${otp}&notification=${encodeURIComponent("Please enter your new Password")}`;
 
-	const emailUser = result.accounts.user.email;
-	const firstName = result.accounts.user.firstName;
-	const lastName = result.accounts.user.lastName || "";
+		const emailUser = result.accounts.user.email;
+		const firstName = result.accounts.user.firstName;
+		const lastName = result.accounts.user.lastName || "";
 
-	// const content = ForgotPasswordTemplate({
-	// 	firstName: firstName,
-	// 	link: redirect,
-	// 	companyName: "Laborare Indonesia",
-	// });
-	// await emailService({
-	// 	email: emailUser,
-	// 	firstName: firstName,
-	// 	lastName: lastName,
-	// 	subject: "Verifikasi Pendafataran Member",
-	// 	contentHtml: content,
-	// });
+		const content = ForgotPasswordTemplate({
+			firstName: firstName,
+			lastName: lastName,
+			subject: "Verification Forgot Password",
+			resetUrl: redirect,
+		});
+		await sendEmail({
+			email: emailUser,
+			firstName: firstName,
+			lastName: lastName || "",
+			subject: "Verification Forgot Password",
+			content: content,
+		});
 
-	// const message = `Berikut link untuk melakukan lupa password: \n\n${redirect} \n\n*Laborare Indonesia*\n_https://laborare.my.id_`;
-	// await whatsappSenderOTP(checkAccount.user.phone, message);
+		return redirect;
+	}
 }
 
 async function changePassword(body: ChangePasswordInterface) {
@@ -357,6 +376,8 @@ async function changePassword(body: ChangePasswordInterface) {
 			break;
 	}
 
+	const compare = await crypt.compare(body.password, account.password || "");
+	if (compare) throw new ApiError(StatusCodes.BAD_REQUEST, "New password seems like with old password, please change!");
 	const salt = await crypt.genSalt(parseInt(env.BCRYPT_ROUND));
 	const newPassword = crypt.hashSync(body.password, parseInt(salt));
 	await prisma.account.update({
@@ -409,6 +430,7 @@ async function login(body: LoginInterface) {
 
 	if (!account) throw new ApiError(StatusCodes.NOT_FOUND, "Login gagal, Periksa email/password anda.");
 	if (account.status && account.user.status === "BLOCKED") throw new ApiError(StatusCodes.NOT_ACCEPTABLE, "Akun telah terblokir oleh sistem, hubungi Customer Service kami!");
+	if (account.status && account.user.status === "PENDING") throw new ApiError(StatusCodes.NOT_ACCEPTABLE, "Account is not verified by email, please make user to has completed process verified!");
 
 	// Checked Hashing
 	const checkPassword = await crypt.compare(body.password, account.password || "");

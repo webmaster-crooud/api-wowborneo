@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model User {
@@ -18,8 +19,6 @@ model User {
   updatedAt  DateTime    @db.Timestamp() @map("updated_at")
 
   account    Account?
-  imageUsers ImageUser[]
-  
   @@map("users")
 }
 
@@ -32,7 +31,7 @@ model Account {
   userAgent   String      @db.Text @map("user_agent")
   googleId    String?     @db.Text @map("google_id")
   status      STATUS      @default(PENDING)
-  roleId      Int         @db.Int @map("role_id")
+  roleId      Int         @db.Integer @map("role_id")
   createdAt   DateTime    @db.Timestamp() @map("created_at")
   updatedAt   DateTime    @db.Timestamp() @map("updated_at")
 
@@ -45,7 +44,7 @@ model Account {
 }
 
 model EmailVerify {
-  id         Int         @db.Int @id @default(autoincrement())
+  id         Int         @db.Integer @id @default(autoincrement())
   accountId  String      @db.VarChar(100) @map("account_id")
   token      String      @db.VarChar(6) @unique
   type       TYPEEMAILVERIFY @default(REGISTER)
@@ -72,7 +71,7 @@ model AccountRefreshToken {
 }
 
 model Role {
-  id          Int         @db.Int @default(autoincrement()) @id
+  id          Int         @db.Integer @default(autoincrement()) @id
   name        String      @db.VarChar(100) @unique @default("MEMBER")
   description String?     @db.Text
   status      STATUS      @default(PENDING)
@@ -89,32 +88,96 @@ model Cruise {
   slug       String      @db.VarChar(100) @unique
 
   title      String      @db.VarChar(100) @unique
-  subTitle   String?     @db.VarChar(100)
+  subTitle   String?     @db.VarChar(100) @map("sub_title")
   description String?    @db.Text
   departure  String?     @db.VarChar(100)
   duration   String      @db.VarChar(100)
 
   status     STATUS      @default(ACTIVED)
 
+  // Introduction disimpan langsung di model Cruise
+  introductionTitle   String?             @db.VarChar(100) @map("introduction_title")
+  introductionText    String?             @db.Text         @map("introduction_text")
+  
+  cta                 String?             @db.Text
+
   createdAt  DateTime    @db.Timestamp() @map("created_at")
   updatedAt  DateTime    @db.Timestamp() @map("updated_at")
 
-  imageCruises ImageCruise[]
   destinations Destination[]
+  highlights Highlight[]
+  include Include[]
+  informations Information[]
   
   @@map("river_cruise")
   @@index([updatedAt])
 }
 
+model Image { 
+  id         Int         @db.Integer @id @default(autoincrement())
+  imageType  IMAGETYPE   @map("image_type")
+  alt        String?     @db.VarChar(100)
+
+  filename   String      @db.VarChar(255)
+  source     String     @db.Text
+  mimetype   String      @db.VarChar(100)
+  size       Int         @db.Integer
+
+  entityId   String      @db.VarChar(50) @map("entity_id")
+  entityType String      @db.VarChar(50) @map("entity_type")
+  
+  @@map("images")
+  @@index([entityId, entityType, source, filename])
+}
+
+model Highlight {
+  id          Int       @id @default(autoincrement()) @db.Integer
+  title       String   @db.VarChar(100)
+  description String?   @db.Text
+  
+  cruiseId    String    @db.VarChar(50) @map("cruise_id")
+  cruise      Cruise    @relation(fields: [cruiseId], references: [id], onDelete: Cascade)
+  
+  createdAt  DateTime    @db.Timestamp() @map("created_at")
+  updatedAt  DateTime    @db.Timestamp() @map("updated_at")
+  
+  @@map("highlights")
+  @@index([cruiseId])
+}
+model Include {
+  id          Int       @id @default(autoincrement()) @db.Integer
+  title       String   @db.VarChar(100)
+  description String?   @db.Text
+  
+  cruiseId    String    @db.VarChar(50) @map("cruise_id")
+  cruise      Cruise    @relation(fields: [cruiseId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime  @default(now()) @db.Timestamp() @map("created_at")
+  
+  @@map("include")
+  @@index([cruiseId])
+}
+model Information {
+  id          Int       @id @default(autoincrement()) @db.Integer
+  title       String   @db.VarChar(100)
+  text        String?   @db.Text
+  
+  cruiseId    String    @db.VarChar(50) @map("cruise_id")
+  cruise      Cruise    @relation(fields: [cruiseId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime  @default(now()) @db.Timestamp() @map("created_at")
+  
+  @@map("informations")
+  @@index([cruiseId])
+}
+
+
 model Destination {
-  id         Int         @id @db.Int @default(autoincrement())
-  cruiseId   String      @db.VarChar(50)
-  title      String      @db.VarChar(100) @unique
+  id         Int         @id @db.Integer @default(autoincrement())
+  cruiseId   String      @db.VarChar(50) @map("cruise_id")
+  title      String      @db.VarChar(100)
   description String?    @db.Text
   days       String      @db.VarChar(100)
-  
-  imageCover String?     @db.Text @map("image_cover")
-  alt        String?     @db.VarChar(100)
 
   status     STATUS      @default(ACTIVED)
   createdAt  DateTime    @db.Timestamp() @map("created_at")
@@ -122,52 +185,97 @@ model Destination {
 
   cruise     Cruise      @relation(fields: [cruiseId], references: [id])
   
-  @@map("destination")
+  @@map("destinations")
   @@index([cruiseId])
 }
 
-model ImageCruise { 
-  id         Int         @db.Int @id @default(autoincrement())
-  imageType  IMAGETYPE   @map("image_type")
-  alt        String?     @db.VarChar(100)
-  description String?    @db.Text
 
-  filename   String      @db.VarChar(255)
-  source     String?     @db.Text
-  mimetype   String      @db.VarChar(100)
-  size       Int         @db.Int
+// model Boat {
+//   id String @db.VarChar(100) @id @default(cuid())
+//   name String @db.VarChar(100) @unique
+//   slug String @db.VarChar(100) @unique
+//   description String? @db.Text
 
-  cruiseId   String      @db.VarChar(50)
+//   image_boats ImageBoat[]
+//   map_boats MapBoat?
+//   @@map("boats")
+// }
 
-  cruise     Cruise      @relation(fields: [cruiseId], references: [id], onDelete: Cascade)
+// model BoatCabin {
+//   id Int @db.Integer @id @default(autoincrement())
+//   boatId String @db.VarChar(100) @map("boat_id") 
+//   cabinId String @db.VarChar(100) @map("cabin_id") 
   
-  @@map("image_cruises")
-  @@index([cruiseId])
-  @@index([filename])
-}
+//   basePrice Decimal @db.Decimal(12,2) @map("base_price")
 
-model ImageUser { 
-  id         Int         @db.Int @id @default(autoincrement())
-  imageType  IMAGETYPE   @map("image_type")
-  alt        String?     @db.VarChar(100)
-  description String?    @db.Text
+//   imagesBoatCabins ImageBoatCabin[]
+//   @@map("boat_cabins")
+// }
+
+// model Cabin {
+//   id String @db.VarChar(100) @default(cuid()) @id
+//   type String @db.VarChar(100)
+//   maxCapacity Int @db.Integer @map("max_capacity")
+//   description String? @db.Text
+
+//   @@map("cabins")
+// }
+
+
+// model ImageBoat { 
+//   id         Int         @db.Integer @id @default(autoincrement())
+//   imageType  IMAGETYPE   @map("image_type")
+//   alt        String?     @db.VarChar(100)
+//   description String?    @db.Text
+
+//   filename   String      @db.VarChar(255)
+//   source     String?     @db.Text
+//   mimetype   String      @db.VarChar(100)
+//   size       Int         @db.Integer
+
+//   boatId   String      @db.VarChar(50) @map("boat_id")
+
+//   boat     Boat      @relation(fields: [boatId], references: [id], onDelete: Cascade)
   
-  filename   String      @db.VarChar(255)
-  source     String?     @db.Text
-  mimetype   String      @db.VarChar(100)
-  size       Int         @db.Int
+//   @@map("image_boats")
+// }
 
-  userId     String      @db.VarChar(100)
+// model MapBoat { 
+//   id         Int         @db.Integer @id @default(autoincrement())
+//   alt        String?     @db.VarChar(100)
+//   description String?    @db.Text
 
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   filename   String      @db.VarChar(255)
+//   source     String?     @db.Text
+//   mimetype   String      @db.VarChar(100)
+//   size       Int         @db.Integer
+
+//   boatId   String      @db.VarChar(50) @unique @map("boat_id")
+//   boat     Boat      @relation(fields: [boatId], references: [id], onDelete: Cascade)
   
-  @@map("image_users")
-  @@index([userId])
-  @@index([filename])
-}
+//   @@map("map_boats")
+// }
+
+// model ImageBoatCabin { 
+//   id         Int         @db.Integer @id @default(autoincrement())
+//   imageType  IMAGETYPE   @map("image_type")
+//   alt        String?     @db.VarChar(100)
+//   description String?    @db.Text
+
+//   filename   String      @db.VarChar(255)
+//   source     String?     @db.Text
+//   mimetype   String      @db.VarChar(100)
+//   size       Int         @db.Integer
+
+//   boatCabinId   Int      @db.Integer @map("boat_cabin_id")
+
+//   boatCabins     BoatCabin      @relation(fields: [boatCabinId], references: [id], onDelete: Cascade)
+  
+//   @@map("image_boat_cabins")
+// }
 
 model Log {
-  id         Int         @db.Int @id @default(autoincrement())
+  id         Int         @db.Integer @id @default(autoincrement())
   accountId  String      @db.VarChar(100) @map("account_id")
   action     String      @db.VarChar(100)
   table      String      @db.VarChar(100)

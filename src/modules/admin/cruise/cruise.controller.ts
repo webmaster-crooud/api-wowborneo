@@ -9,15 +9,16 @@ import { STATUS } from "@prisma/client";
 async function createController(req: Request, res: Response) {
 	const { accountId } = req.user;
 	try {
-		await cruiseService.create(accountId, req.body);
+		console.log(req.body);
+		const response = await cruiseService.create(accountId, req.body);
+		console.log(response);
 		await log.createSuccess(accountId, "Cruise");
-		ApiResponse.sendSuccess(res, "ok", StatusCodes.CREATED);
+		ApiResponse.sendSuccess(res, { id: response.id, destinationIds: response.destinationIds, highlightIds: response.highlightIds }, StatusCodes.CREATED);
 	} catch (error) {
 		log.createFailed(accountId, "Cruise");
 		ApiResponse.sendError(res, error as Error);
 	}
 }
-
 async function updateController(req: Request, res: Response) {
 	const { accountId } = req.user;
 	try {
@@ -31,7 +32,6 @@ async function updateController(req: Request, res: Response) {
 		ApiResponse.sendError(res, error as Error);
 	}
 }
-
 async function actionController(req: Request, res: Response) {
 	const { accountId } = req.user;
 	try {
@@ -51,7 +51,6 @@ async function actionController(req: Request, res: Response) {
 		ApiResponse.sendError(res, error as Error);
 	}
 }
-
 async function getController(req: Request, res: Response) {
 	try {
 		const { search, filter, favourite, deleted } = req.query;
@@ -67,14 +66,13 @@ async function getController(req: Request, res: Response) {
 	}
 }
 async function findController(req: Request, res: Response) {
-	const { accountId } = req.user;
 	try {
 		const { cruiseId } = req.params;
 		const cruises = await cruiseService.find(cruiseId);
-		log.readSuccess(accountId, "Cruise");
+
+		console.log(cruises);
 		ApiResponse.sendSuccess(res, cruises, StatusCodes.OK);
 	} catch (error) {
-		log.readFailed(accountId, "Cruise");
 		ApiResponse.sendError(res, error as Error);
 	}
 }

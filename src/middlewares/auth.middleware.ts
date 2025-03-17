@@ -10,8 +10,6 @@ import prisma from "../configs/database";
 export const authMiddleware: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
 	const token = req.cookies.accessToken;
 
-	console.log(token);
-
 	if (!token) {
 		return next(new ApiError(StatusCodes.UNAUTHORIZED, "Unauthorized"));
 	}

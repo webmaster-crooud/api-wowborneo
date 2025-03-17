@@ -9,7 +9,7 @@ export const authRoutes = express.Router();
 // Rate limiter untuk refresh token
 const rateLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000, // 15 menit
-	max: 5, // Maksimal 5 request per windowMs
+	max: 30, // Maksimal 5 request per windowMs
 	message: "Too many refresh attempts, please try again later",
 });
 

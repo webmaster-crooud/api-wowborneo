@@ -24,12 +24,11 @@ const registerController = async (req: Request, res: Response) => {
 async function emailVerifyController(req: Request, res: Response) {
 	try {
 		const { token } = req.query;
-		console.log(token);
 		if (!token || token === "") throw new ApiError(StatusCodes.BAD_REQUEST, "Token is required");
 
 		await authService.emailVerify(String(token));
 		const data = {
-			redirect: "/login?notification=Akun Member telah aktif, silahkan melakukan login dengan akun anda untuk mengakses Aplikasi Kami!",
+			redirect: "/?notification=Akun Member telah aktif, silahkan melakukan login dengan akun anda untuk mengakses Aplikasi Kami!",
 		};
 		ApiResponse.sendSuccess(res, data, StatusCodes.ACCEPTED);
 	} catch (error) {
@@ -55,13 +54,8 @@ async function forgotPasswordController(req: Request, res: Response) {
 	try {
 		const { email } = req.params;
 		await authService.forgotPassword(email);
-		const data = {
-			redirect: "/login?notification=Lupa Password berhasil dikirim, silahkan cek Email anda untuk melanjutkan proses ganti password.",
-		};
-
-		ApiResponse.sendSuccess(res, data, StatusCodes.CREATED);
-
-		// Kirim kode OTP via Email
+		const redirect = "/login?notification=Lupa Password berhasil dikirim, silahkan cek Email anda untuk melanjutkan proses ganti password.";
+		ApiResponse.sendSuccess(res, redirect, StatusCodes.OK);
 	} catch (error) {
 		ApiResponse.sendError(res, error as Error);
 	}
@@ -73,7 +67,7 @@ async function changePasswordController(req: Request, res: Response) {
 		await authService.changePassword(body);
 
 		const data = {
-			redirect: "/login?notification=Selamat password anda berhasil diperbarui, silahkan login menggunakan akun anda kembali.",
+			redirect: "/login?notification=Congratulation your password successfully to change with new password",
 		};
 		ApiResponse.sendSuccess(res, data, StatusCodes.CREATED);
 	} catch (error) {
@@ -86,18 +80,34 @@ async function loginController(req: Request, res: Response) {
 		const body = req.body;
 		if (!body) throw new ApiError(StatusCodes.BAD_GATEWAY, "Login gagal!");
 		const result = await authService.login(body);
-
 		const { account } = result;
+		let redirectUrl = `/`; // Default redirect
+		switch (account.role.name) {
+			case "admin":
+				redirectUrl = "/admin";
+				break;
+			case "owner":
+				redirectUrl = "/owner";
+				break;
+			case "developer":
+				redirectUrl = "/developer";
+				break;
+			default:
+				redirectUrl = `/member`;
+		}
+
 		const data = {
-			// token: result.accessToken,
-			email: account.email,
-			firstName: account.user.firstName,
-			lastName: account.user.lastName,
-			role: account.role.name,
+			redirect: env.DASHBOARD_URL + "/" + redirectUrl,
+			account: {
+				email: account.email,
+				firstName: account.user.firstName,
+				lastName: account.user.lastName,
+				role: account.role.name,
+			},
 		};
 
-		// res.clearCookie("accessToken");
-		// res.clearCookie("refreshToken");
+		res.clearCookie("accessToken");
+		res.clearCookie("refreshToken");
 
 		res.cookie("accessToken", result.accessToken, {
 			httpOnly: true,

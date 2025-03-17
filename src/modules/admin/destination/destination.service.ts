@@ -1,20 +1,19 @@
 import { StatusCodes } from "http-status-codes";
 import prisma from "../../../configs/database";
 import { ApiError } from "../../../libs/apiResponse";
-import { DestinationInterface } from "../../../types/destination";
+
 import { STATUS } from "../../../types/main";
+import { IDestination } from "../../../types/destination";
 
 export const destinationService = {
-	async countId(id: number) {
+	async countId(id: number): Promise<number> {
 		const count = await prisma.destination.count({
-			where: { id },
+			where: { id, NOT: { status: "DELETED" } },
 		});
-
-		if (count === 0) throw new ApiError(StatusCodes.NOT_FOUND, "Destination is not found!");
-		return;
+		return count;
 	},
 
-	async create(accountId: string, cruiseId: string, body: DestinationInterface[]) {
+	async create(accountId: string, cruiseId: string, body: IDestination[]) {
 		const account = await prisma.account.findUnique({
 			where: {
 				id: accountId,
@@ -38,27 +37,27 @@ export const destinationService = {
 						createdAt: new Date(),
 						updatedAt: new Date(),
 						days: destination.days || "",
-						alt: destination.alt || "",
 						title: destination.title,
-						imageCover: destination.imageCover || "",
+					},
+					select: {
+						id: true,
 					},
 				})
 			)
 		);
 	},
 
-	async update(id: number, body: DestinationInterface) {
-		await this.countId(id);
+	async update(id: number, body: IDestination) {
+		const count = await this.countId(id);
+		if (count === 0) throw new ApiError(StatusCodes.NOT_FOUND, "Destination is not found!");
 
 		await prisma.destination.update({
 			where: {
 				id,
 			},
 			data: {
-				alt: body.alt,
 				days: body.days || "",
 				description: body.description,
-				imageCover: body.imageCover,
 				title: body.title,
 				updatedAt: new Date(),
 			},
@@ -80,6 +79,79 @@ export const destinationService = {
 				status: true,
 			},
 		});
+	},
+
+	async list(s?: string): Promise<IDestination[]> {
+		// Build the base filter
+		const filter: any = {
+			OR: [
+				{
+					AND: [
+						{ status: "ACTIVED" },
+						{
+							cruise: {
+								status: "ACTIVED",
+							},
+						},
+					],
+				},
+				{
+					AND: [
+						{ status: "FAVOURITED" },
+						{
+							cruise: {
+								status: "FAVOURITED",
+							},
+						},
+					],
+				},
+			],
+		};
+
+		// Add search condition if provided
+		if (s) {
+			filter.title = { contains: s };
+		}
+
+		const result = await prisma.destination.findMany({
+			where: filter,
+			include: {
+				cruise: {
+					select: {
+						id: true,
+						title: true,
+						status: true,
+					},
+				},
+			},
+			orderBy: {
+				updatedAt: "desc",
+			},
+			take: 10,
+		});
+		const destinationCovers = await prisma.image.findMany({
+			where: {
+				entityId: { in: result.map((dest) => String(dest.id)) },
+				entityType: "DESTINATION",
+				imageType: "COVER",
+			},
+			select: {
+				id: true,
+				entityId: true,
+				entityType: true,
+				imageType: true,
+				source: true,
+				alt: true,
+			},
+		});
+		const destinationsWithCover = result.map((destination) => {
+			const cover = destinationCovers.find((cover) => cover.entityId === String(destination.id));
+			return {
+				...destination,
+				cover: cover || null,
+			};
+		});
+		return destinationsWithCover;
 	},
 };
 

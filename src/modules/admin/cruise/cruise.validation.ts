@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { cruiseDestinationsValidation } from "../destination/destination.validaiton";
+import { destinationValidation } from "../destination/destination.validation";
 
 export const imageCruiseValidation = z.object({
 	imageType: z.enum(["COVER", "PHOTO"]),
@@ -19,7 +19,8 @@ export const cruiseValidation = z.object({
 		description: z.string().max(1000, "Description: Max. 1000 character").optional(),
 		derpature: z.string().max(100, "Description: Max. 100 character").optional(),
 		duration: z.string().max(100, "Description: Max. 100 character").optional(),
-		destinations: z.array(cruiseDestinationsValidation),
+
+		destinations: z.array(destinationValidation),
 	}),
 });
 
