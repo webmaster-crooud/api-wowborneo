@@ -12,11 +12,10 @@ export const errorHandler = (err: ApiError, req: Request, res: Response, next: N
 		stack: err.stack,
 	});
 
-	// Tambahkan errors ke respons
 	res.status(statusCode).json({
 		success: false,
 		message,
-		errors: err.errors || [], // <-- Ini yang kurang
+		errors: err.errors || [],
 		...(process.env.NODE_ENV === "development" && { stack: err.stack }),
 	});
 	next();

@@ -191,6 +191,9 @@ export const cruiseService = {
 							status: "DELETED",
 						},
 					},
+					orderBy: {
+						days: "desc",
+					},
 					select: {
 						cruiseId: true,
 						id: true,
@@ -207,6 +210,7 @@ export const cruiseService = {
 				cta: true,
 				include: {
 					select: {
+						id: true,
 						title: true,
 						description: true,
 					},
@@ -232,7 +236,41 @@ export const cruiseService = {
 
 		if (!cruise) throw new ApiError(StatusCodes.NOT_FOUND, "Cruise is not found!");
 
-		// Kemudian ambil semua gambar cover untuk destinations
+		// Ambil cover cruise
+		const cruiseCover = await prisma.image.findFirst({
+			where: {
+				entityId: String(cruise.id),
+				entityType: "CRUISE",
+				imageType: "COVER",
+			},
+			select: {
+				id: true,
+				entityId: true,
+				entityType: true,
+				imageType: true,
+				source: true,
+				alt: true,
+			},
+		});
+
+		// Ambil galeri cruise (photos)
+		const cruiseGallery = await prisma.image.findMany({
+			where: {
+				entityId: String(cruise.id),
+				entityType: "CRUISE",
+				imageType: "PHOTO",
+			},
+			select: {
+				id: true,
+				entityId: true,
+				entityType: true,
+				imageType: true,
+				source: true,
+				alt: true,
+			},
+		});
+
+		// Ambil semua gambar cover untuk destinations
 		const destinationCovers = await prisma.image.findMany({
 			where: {
 				entityId: { in: cruise.destinations.map((dest) => String(dest.id)) },
@@ -284,9 +322,11 @@ export const cruiseService = {
 			};
 		});
 
-		// Kembalikan data cruise yang sudah dilengkapi dengan cover
+		// Kembalikan data cruise yang sudah dilengkapi dengan cover dan gallery
 		return {
 			...cruise,
+			cover: cruiseCover || null,
+			gallery: cruiseGallery || [],
 			destinations: destinationsWithCover,
 			highlights: highlightsWithCover,
 		};
@@ -369,6 +409,7 @@ export const cruiseService = {
 			},
 		});
 
+		console.log(body);
 		if (!findCruise) throw new ApiError(StatusCodes.NOT_FOUND, "The cruise is not found");
 		if (body.title === findCruise.title) {
 			await prisma.cruise.update({

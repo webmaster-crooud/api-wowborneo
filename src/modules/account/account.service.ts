@@ -139,10 +139,8 @@ export const accountService = {
 				password: true,
 			},
 		});
-		console.log(account);
 
 		const checkPassword = await crypt.compare(body.oldPassword, account?.password || "");
-		console.log(checkPassword);
 		if (!checkPassword) throw new ApiError(StatusCodes.BAD_REQUEST, "Your old password is not valid, please check your input again!");
 
 		const salt = await crypt.genSalt(parseInt(env.BCRYPT_ROUND));

@@ -1,3 +1,5 @@
+// BACKEND IMAGE CONTROLLER
+
 import { Request, Response } from "express";
 import prisma from "../../configs/database";
 import { IImage } from "../../types/image";
@@ -9,8 +11,6 @@ export async function createImageController(req: Request, res: Response) {
 	try {
 		const file = req.file;
 		const { entityId, imageType, entityType } = req.body;
-		console.log(entityId, imageType, entityType);
-		console.log("FILE:", req.file);
 
 		if (!file || !entityId || !entityType || !imageType) {
 			throw new ApiError(StatusCodes.BAD_REQUEST, "Upload file is not valid!");

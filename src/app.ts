@@ -2,7 +2,7 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { csrfSync } from "csrf-sync";
-import express from "express";
+import express, { NextFunction, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
 import session from "express-session";
 import helmet from "helmet";
@@ -14,6 +14,8 @@ import { authRoutes } from "./modules/auth/auth.routes";
 import { adminRouter } from "./modules/admin/routes";
 import { accountRouter } from "./modules/account/account.routes";
 import { imageRoutes } from "./modules/image/image.routes";
+import { ApiError } from "./libs/apiResponse";
+import { StatusCodes } from "http-status-codes";
 
 // Mengatasi deprecation warning untuk punycode
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,22 +57,28 @@ app.use(
 );
 
 // 3. Rate Limiting with Different Tiers
-const generalLimiter = rateLimit({
-	windowMs: 15 * 60 * 1000,
-	max: 100,
-	standardHeaders: true,
-	legacyHeaders: false,
-});
+// const generalLimiter = rateLimit({
+// 	windowMs: 15 * 60 * 1000,
+// 	max: 100,
+// 	standardHeaders: true, // Tambahkan rate limit headers ke response
+// 	legacyHeaders: false, // Nonaktifkan X-RateLimit-* headers lama
 
-const authLimiter = rateLimit({
-	windowMs: 15 * 60 * 1000,
-	max: 50,
-	standardHeaders: true,
-	legacyHeaders: false,
-});
+// 	// Custom error handler agar masuk ke middleware errorHandler
+// 	handler: (req: Request, res: Response, next: NextFunction) => {
+// 		const error = new ApiError(StatusCodes.TOO_MANY_REQUESTS, "Too many refresh attempts, please try again later until 15 Minutes");
+// 		next(error);
+// 	},
+// });
 
-app.use(generalLimiter);
-app.use("/api/v1/auth", authLimiter);
+// const authLimiter = rateLimit({
+// 	windowMs: 15 * 60 * 1000,
+// 	max: 50,
+// 	standardHeaders: true,
+// 	legacyHeaders: false,
+// });
+
+// app.use(generalLimiter);
+// app.use("/api/v1/auth", authLimiter);
 
 // 4. Secure Session Configuration
 app.use(

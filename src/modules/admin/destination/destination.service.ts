@@ -5,6 +5,9 @@ import { ApiError } from "../../../libs/apiResponse";
 import { STATUS } from "../../../types/main";
 import { IDestination } from "../../../types/destination";
 
+interface IBody {
+	destination: IDestination[];
+}
 export const destinationService = {
 	async countId(id: number): Promise<number> {
 		const count = await prisma.destination.count({
@@ -13,7 +16,7 @@ export const destinationService = {
 		return count;
 	},
 
-	async create(accountId: string, cruiseId: string, body: IDestination[]) {
+	async create(accountId: string, cruiseId: string, body: IBody): Promise<number> {
 		const account = await prisma.account.findUnique({
 			where: {
 				id: accountId,
@@ -27,30 +30,34 @@ export const destinationService = {
 			},
 		});
 
-		await Promise.all(
-			body.map(async (destination) =>
-				prisma.destination.create({
-					data: {
-						cruiseId: cruiseId,
-						status: account?.role.name === "admin" ? "ACTIVED" : "PENDING",
-						description: destination.description || "",
-						createdAt: new Date(),
-						updatedAt: new Date(),
-						days: destination.days || "",
-						title: destination.title,
-					},
-					select: {
-						id: true,
-					},
-				})
-			)
-		);
+		const destination = body.destination[0];
+		const data = await prisma.destination.findFirst({
+			where: {
+				title: destination.title,
+			},
+		});
+		if (data) throw new ApiError(StatusCodes.BAD_REQUEST, `${destination.title} is already exist!`);
+		const res = await prisma.destination.create({
+			data: {
+				cruiseId: cruiseId,
+				status: account?.role.name === "admin" ? "ACTIVED" : "PENDING",
+				description: destination.description || "",
+				createdAt: new Date(),
+				updatedAt: new Date(),
+				days: destination.days || "",
+				title: destination.title,
+			},
+			select: {
+				id: true,
+			},
+		});
+
+		return res.id;
 	},
 
 	async update(id: number, body: IDestination) {
 		const count = await this.countId(id);
 		if (count === 0) throw new ApiError(StatusCodes.NOT_FOUND, "Destination is not found!");
-
 		await prisma.destination.update({
 			where: {
 				id,

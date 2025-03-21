@@ -11,9 +11,9 @@ async function createController(req: Request, res: Response) {
 		const { cruiseId } = req.params;
 		if (!cruiseId) throw new ApiError(StatusCodes.BAD_REQUEST, "Failed to processing request");
 		const body = req.body;
-		await destinationService.create(accountId, cruiseId, body);
+		const result = await destinationService.create(accountId, cruiseId, body);
 		log.createSuccess(accountId, "Destination");
-		ApiResponse.sendSuccess(res, "OK", StatusCodes.CREATED);
+		ApiResponse.sendSuccess(res, { result }, StatusCodes.CREATED);
 	} catch (error) {
 		log.createFailed(accountId, "Destination");
 		ApiResponse.sendError(res, error as Error);
@@ -60,7 +60,6 @@ async function listController(req: Request, res: Response) {
 		// const { search, filter, favourite, deleted } = req.query;
 		const { search } = req.query;
 		const searching: string | undefined = search !== "undefined" ? search?.toString() : undefined;
-		console.log(searching);
 		const response = await destinationService.list(searching);
 		ApiResponse.sendSuccess(res, response, StatusCodes.OK);
 	} catch (error) {

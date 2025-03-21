@@ -1,5 +1,5 @@
 import { IDestination } from "./destination";
-import { ICover } from "./image";
+import { ICover, IImage } from "./image";
 import { STATUS } from "./main";
 
 export interface ICruises {
@@ -29,6 +29,8 @@ export interface ICruise {
 	informations: IInformation[];
 	createdAt: Date | string;
 	updatedAt: Date | string;
+	cover: IImage | null;
+	gallery: IImage[];
 }
 
 export interface IHighlight {

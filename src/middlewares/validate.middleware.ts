@@ -4,6 +4,7 @@ import { ApiError } from "../libs/apiResponse";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const validate = (schema: ZodObject<any> | ZodEffects<ZodObject<any>>) => async (req: Request, res: Response, next: NextFunction) => {
+	console.log(req.body);
 	try {
 		await schema.parseAsync({
 			body: req.body,
