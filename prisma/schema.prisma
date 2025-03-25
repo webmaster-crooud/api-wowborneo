@@ -108,6 +108,7 @@ model Cruise {
   highlights Highlight[]
   include Include[]
   informations Information[]
+  boats Boat[]
   
   @@map("river_cruise")
   @@index([updatedAt])
@@ -190,89 +191,75 @@ model Destination {
 }
 
 
-// model Boat {
-//   id String @db.VarChar(100) @id @default(cuid())
-//   name String @db.VarChar(100) @unique
-//   slug String @db.VarChar(100) @unique
-//   description String? @db.Text
-
-//   image_boats ImageBoat[]
-//   map_boats MapBoat?
-//   @@map("boats")
-// }
-
-// model BoatCabin {
-//   id Int @db.Integer @id @default(autoincrement())
-//   boatId String @db.VarChar(100) @map("boat_id") 
-//   cabinId String @db.VarChar(100) @map("cabin_id") 
+model Boat {
+  id String @db.VarChar(100) @id @default(cuid())
+  name String @db.VarChar(100) @unique
+  slug String @db.VarChar(100) @unique
+  description String? @db.Text
+  optionText String? @db.Text @map("option_text")
+  cruiseId String @db.VarChar(100) @map("cruise_id")
   
-//   basePrice Decimal @db.Decimal(12,2) @map("base_price")
+  status STATUS @default(PENDING)
+  createdAt  DateTime    @db.Timestamp() @map("created_at")
+  updatedAt  DateTime    @db.Timestamp() @map("updated_at")
+  cruise Cruise @relation(fields: [cruiseId], references: [id])
+  abouts About[]
+  experiences Experience[]
+  facilities Facility[]
+  cabins Cabin[]
+  deck Deck?
 
-//   imagesBoatCabins ImageBoatCabin[]
-//   @@map("boat_cabins")
-// }
+  @@map("boats")
+}
 
-// model Cabin {
-//   id String @db.VarChar(100) @default(cuid()) @id
-//   type String @db.VarChar(100)
-//   maxCapacity Int @db.Integer @map("max_capacity")
-//   description String? @db.Text
+model Cabin {
+  id Int @db.Integer @default(autoincrement()) @id
+  name String @db.VarChar(100) 
+  type TYPECABIN
+  maxCapacity Int @db.Integer @map("max_capacity")
+  description String? @db.Text
+  price Decimal @db.Decimal(12,0)
+  boatId String @db.VarChar(100) @map("boat_id")
+  boat Boat @relation(fields: [boatId], references: [id])
+  @@map("cabins")
+}
 
-//   @@map("cabins")
-// }
+model About {
+  id Int @id @db.Integer @default(autoincrement())
+  title String @db.VarChar(100)
+  description String? @db.Text
+  boatId String @db.VarChar(100) @map("boat_id")
+  boat Boat @relation(fields: [boatId], references: [id])
+  @@map("abouts")
+}
 
+model Experience {
+  id Int @id @db.Integer @default(autoincrement())
+  title String @db.VarChar(100)
+  description String? @db.Text
+  boatId String @db.VarChar(100) @map("boat_id")
+  boat Boat @relation(fields: [boatId], references: [id])
+  @@map("experiences")
+}
 
-// model ImageBoat { 
-//   id         Int         @db.Integer @id @default(autoincrement())
-//   imageType  IMAGETYPE   @map("image_type")
-//   alt        String?     @db.VarChar(100)
-//   description String?    @db.Text
+model Facility {
+  id Int @db.Integer @id @default(autoincrement())
+  name String @db.VarChar(100) 
+  description String? @db.VarChar(100)
+  icon String? @db.VarChar(100)
+  boatId String @db.VarChar(100) @map("boat_id")
+  boat Boat @relation(fields: [boatId], references: [id])
+  @@map("facilities")
+}
 
-//   filename   String      @db.VarChar(255)
-//   source     String?     @db.Text
-//   mimetype   String      @db.VarChar(100)
-//   size       Int         @db.Integer
-
-//   boatId   String      @db.VarChar(50) @map("boat_id")
-
-//   boat     Boat      @relation(fields: [boatId], references: [id], onDelete: Cascade)
-  
-//   @@map("image_boats")
-// }
-
-// model MapBoat { 
-//   id         Int         @db.Integer @id @default(autoincrement())
-//   alt        String?     @db.VarChar(100)
-//   description String?    @db.Text
-
-//   filename   String      @db.VarChar(255)
-//   source     String?     @db.Text
-//   mimetype   String      @db.VarChar(100)
-//   size       Int         @db.Integer
-
-//   boatId   String      @db.VarChar(50) @unique @map("boat_id")
-//   boat     Boat      @relation(fields: [boatId], references: [id], onDelete: Cascade)
-  
-//   @@map("map_boats")
-// }
-
-// model ImageBoatCabin { 
-//   id         Int         @db.Integer @id @default(autoincrement())
-//   imageType  IMAGETYPE   @map("image_type")
-//   alt        String?     @db.VarChar(100)
-//   description String?    @db.Text
-
-//   filename   String      @db.VarChar(255)
-//   source     String?     @db.Text
-//   mimetype   String      @db.VarChar(100)
-//   size       Int         @db.Integer
-
-//   boatCabinId   Int      @db.Integer @map("boat_cabin_id")
-
-//   boatCabins     BoatCabin      @relation(fields: [boatCabinId], references: [id], onDelete: Cascade)
-  
-//   @@map("image_boat_cabins")
-// }
+model Deck{
+  id Int @db.Integer @id @default(autoincrement())
+  title String @db.VarChar(100)
+  description String? @db.VarChar(100)
+  boatId String @db.VarChar(100) @unique
+  boat Boat @relation(fields: [boatId], references: [id])
+  @@map("decks")
+}
 
 model Log {
   id         Int         @db.Integer @id @default(autoincrement())
@@ -308,4 +295,10 @@ enum TYPEEMAILVERIFY {
 enum IMAGETYPE {
   COVER
   PHOTO
+}
+
+enum TYPECABIN {
+  TWIN
+  DOUBLE
+  SUPER
 }

@@ -20,7 +20,6 @@ async function createController(req: Request, res: Response) {
 async function updateController(req: Request, res: Response) {
 	const { accountId } = req.user;
 	try {
-		console.log(req.body);
 		const { cruiseId } = req.params;
 		if (!cruiseId) throw new ApiError(StatusCodes.BAD_REQUEST, "Failed to processing request!");
 		await cruiseService.update(cruiseId, req.body);
@@ -35,7 +34,6 @@ async function actionController(req: Request, res: Response) {
 	const { accountId } = req.user;
 	try {
 		const { action } = req.query;
-		console.log(action);
 		const { cruiseId } = req.params;
 		if (!action && !cruiseId) throw new ApiError(StatusCodes.BAD_REQUEST, "Failed to processing request");
 		const result = await cruiseService.action(action as STATUS, cruiseId, accountId);

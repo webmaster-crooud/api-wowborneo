@@ -23,7 +23,6 @@ async function updateController(req: Request, res: Response) {
 	const { accountId } = req.user;
 	try {
 		const { id } = req.params;
-		console.log(id);
 		if (!id) throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid include ID");
 		const body = req.body;
 		await includeService.update(parseInt(id), body);

@@ -42,7 +42,7 @@ export const cruiseService = {
 				},
 			},
 		});
-		const slug: string = slugify(body.title);
+		const slug: string = slugify(body.slug ? body.slug.toLocaleLowerCase() : body.title.toLocaleLowerCase());
 
 		const count = await this.countCruise(body.title, slug);
 		if (count !== 0) throw new ApiError(StatusCodes.BAD_REQUEST, "Cruise title or slug has already in database, please check your input again!");
@@ -61,7 +61,7 @@ export const cruiseService = {
 						introductionTitle: body.introductionTitle,
 						introductionText: body.introductionText,
 						cta: body.cta,
-						status: account?.role.name === "admin" ? "PENDING" : "ACTIVED",
+						status: body.status ? (body.status as STATUS) : account?.role.name === "admin" ? "PENDING" : "ACTIVED",
 						createdAt: new Date(),
 						updatedAt: new Date(),
 					},
@@ -409,7 +409,6 @@ export const cruiseService = {
 			},
 		});
 
-		console.log(body);
 		if (!findCruise) throw new ApiError(StatusCodes.NOT_FOUND, "The cruise is not found");
 		if (body.title === findCruise.title) {
 			await prisma.cruise.update({
@@ -475,7 +474,9 @@ export const cruiseService = {
 				title: true,
 			},
 		});
-		if (account?.role.name !== "admin") throw new ApiError(StatusCodes.FORBIDDEN, "Oppss... Your account can't access this service");
+		if (cruise?.status === "PENDING") {
+			if (account?.role.name !== "admin") throw new ApiError(StatusCodes.FORBIDDEN, "Oppss... Your account can't access this service");
+		}
 		if (cruise?.status === action) throw new ApiError(StatusCodes.OK, `${cruise.title} has already ${cruise.status}`);
 		else
 			return await prisma.cruise.update({

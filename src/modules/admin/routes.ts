@@ -4,6 +4,7 @@ import { destinationRoutes } from "./destination/destination.routes";
 import { highlightRoutes } from "./highlight/highlight.routes";
 import { informationRoutes } from "./information/information.routes";
 import { includeRoutes } from "./include/include.routes";
+import { boatRoutes } from "./boat/boat.routes";
 
 export const adminRouter = express.Router();
 
@@ -12,3 +13,4 @@ adminRouter.use("/destination", destinationRoutes);
 adminRouter.use("/highlight", highlightRoutes);
 adminRouter.use("/information", informationRoutes);
 adminRouter.use("/include", includeRoutes);
+adminRouter.use("/boat", boatRoutes);
