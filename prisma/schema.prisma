@@ -39,6 +39,7 @@ model Account {
   role        Role        @relation(fields: [roleId], references: [id])
   emailVerify EmailVerify[]
   accountRefreshToken AccountRefreshToken?
+  bookings Booking[]
 
   @@map("accounts")
 }
@@ -108,8 +109,7 @@ model Cruise {
   highlights Highlight[]
   include Include[]
   informations Information[]
-  boats Boat[]
-  
+  schedules Schedule[]
   @@map("river_cruise")
   @@index([updatedAt])
 }
@@ -171,8 +171,6 @@ model Information {
   @@map("informations")
   @@index([cruiseId])
 }
-
-
 model Destination {
   id         Int         @id @db.Integer @default(autoincrement())
   cruiseId   String      @db.VarChar(50) @map("cruise_id")
@@ -196,22 +194,20 @@ model Boat {
   name String @db.VarChar(100) @unique
   slug String @db.VarChar(100) @unique
   description String? @db.Text
-  optionText String? @db.Text @map("option_text")
-  cruiseId String @db.VarChar(100) @map("cruise_id")
+  optionText String? @db.Text
   
   status STATUS @default(PENDING)
   createdAt  DateTime    @db.Timestamp() @map("created_at")
   updatedAt  DateTime    @db.Timestamp() @map("updated_at")
-  cruise Cruise @relation(fields: [cruiseId], references: [id])
   abouts About[]
   experiences Experience[]
   facilities Facility[]
   cabins Cabin[]
   deck Deck?
+  schedules Schedule[]
 
   @@map("boats")
 }
-
 model Cabin {
   id Int @db.Integer @default(autoincrement()) @id
   name String @db.VarChar(100) 
@@ -221,9 +217,9 @@ model Cabin {
   price Decimal @db.Decimal(12,0)
   boatId String @db.VarChar(100) @map("boat_id")
   boat Boat @relation(fields: [boatId], references: [id])
+  bookings Booking[]
   @@map("cabins")
 }
-
 model About {
   id Int @id @db.Integer @default(autoincrement())
   title String @db.VarChar(100)
@@ -232,7 +228,6 @@ model About {
   boat Boat @relation(fields: [boatId], references: [id])
   @@map("abouts")
 }
-
 model Experience {
   id Int @id @db.Integer @default(autoincrement())
   title String @db.VarChar(100)
@@ -241,7 +236,6 @@ model Experience {
   boat Boat @relation(fields: [boatId], references: [id])
   @@map("experiences")
 }
-
 model Facility {
   id Int @db.Integer @id @default(autoincrement())
   name String @db.VarChar(100) 
@@ -251,7 +245,6 @@ model Facility {
   boat Boat @relation(fields: [boatId], references: [id])
   @@map("facilities")
 }
-
 model Deck{
   id Int @db.Integer @id @default(autoincrement())
   title String @db.VarChar(100)
@@ -259,6 +252,43 @@ model Deck{
   boatId String @db.VarChar(100) @unique
   boat Boat @relation(fields: [boatId], references: [id])
   @@map("decks")
+}
+
+model Schedule {
+  id          String   @id @default(cuid())
+  cruiseId    String   @db.VarChar(100) @map("cruise_id")
+  boatId      String @db.VarChar(100) @map("boatId")
+  departureAt DateTime @db.Date() @map("departure_at") // Tanggal keberangkatan
+  arrivalAt   DateTime @db.Date() @map("arrival_at") // Tanggal kedatangan (opsional, bisa dihitung dari durasi Cruise)
+  status      STATUS   @default(ACTIVED) // STATUS seperti ACTIVE, SOLD_OUT, etc.
+
+  createdAt  DateTime    @db.Timestamp() @map("created_at")
+  updatedAt  DateTime    @db.Timestamp() @map("updated_at")
+  cruise      Cruise   @relation(fields: [cruiseId], references: [id])
+  boat      Boat   @relation(fields: [boatId], references: [id])
+  bookings Booking[]
+  @@index([departureAt])
+  @@index([cruiseId])
+  @@index([boatId])
+  @@map("schedules")
+}
+
+model Booking {
+  id             String    @id @default(cuid())
+  accountId      String    @db.VarChar(100) @map("account_id")
+  cabinId        Int       @db.Integer @map("cabin_id")
+  scheduleId     String    @db.VarChar(100) @map("schedule_id")
+  totalPrice     Decimal   @db.Decimal(12,2) @map("total_price")// Harga total (harga cabin * durasi Cruise)
+  paymentStatus  PAYMENT_STATUS @default(PENDING) @map("payment_status")
+  bookingDate    DateTime  @db.Timestamp() @map("booking_date")
+  paymentMethod  String?   @db.VarChar(100) @map("payment_method")
+  referenceCode  String?   @db.VarChar(50) @map("reference_code") // Kode referensi pembayaran
+
+  account        Account   @relation(fields: [accountId], references: [id])
+  cabin          Cabin     @relation(fields: [cabinId], references: [id])
+  schedule       Schedule  @relation(fields: [scheduleId], references: [id])
+  
+  @@map("bookings")
 }
 
 model Log {
@@ -301,4 +331,11 @@ enum TYPECABIN {
   TWIN
   DOUBLE
   SUPER
+}
+
+enum PAYMENT_STATUS {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
 }

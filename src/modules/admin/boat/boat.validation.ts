@@ -90,7 +90,5 @@ export const updateBoatValidation = z.object({
 		description: z.string().max(2000, "Description must be less than 2000 characters").optional(),
 
 		optionText: z.string().max(2000, "Option text must be less than 2000 characters").optional(),
-
-		cruiseId: z.string({ required_error: "cruise is required!" }),
 	}),
 });

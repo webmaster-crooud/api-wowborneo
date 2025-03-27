@@ -13,7 +13,6 @@ export interface IBoatRequestBody {
 	description: string | null;
 	optionText: string | null;
 	status: STATUS;
-	cruiseId: string;
 	abouts: IAboatRequestBody[];
 	experiences: IExperienceRequestBody[];
 	facilities: IFacilityRequestBody[];
@@ -28,7 +27,6 @@ export interface IDetailBoatResponse {
 	description: string | null;
 	optionText: string | null;
 	status: STATUS;
-	cruiseId: string;
 	cover: IImage | null;
 	abouts: IAboutResponse[];
 	experiences: IExperienceResponse[];
@@ -44,10 +42,6 @@ export interface IListBoatResponse {
 	name: string;
 	slug: string | null;
 	status: STATUS;
-	cruise: {
-		title: string;
-		id: string;
-	};
 	createdAt: Date | string;
 	updatedAt: Date | string;
 }

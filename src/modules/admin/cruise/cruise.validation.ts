@@ -39,11 +39,12 @@ export const informationValidation = z.object({
 export const cruiseValidation = z.object({
 	body: z.object({
 		slug: z
-			.string()
-			.min(1, "Slug is required")
+			.string({ message: "Slug must be string" })
 			.max(100, "Slug must be less than 100 characters")
-			.regex(/^[a-z0-9-]+$/, "Slug must be lowercase with hyphens only")
-			.optional(),
+			.regex(/^[a-z0-9-]*$/, "Slug must be lowercase with hyphens only")
+			.optional()
+			.nullable() // Tambahkan nullable
+			.transform((val) => (val === "" ? undefined : val)),
 		title: z.string({ required_error: "Title: Must have value!" }).min(1, "Title: Minimum 1 character").max(100, "Title: Max. 100 characters"),
 		subTitle: z.string().max(100, "Sub Title: Max. 100 characters").optional().nullable(),
 		description: z.string().max(1000, "Description: Max. 1000 characters").optional().nullable(),

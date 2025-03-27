@@ -36,11 +36,7 @@ export const boatService = {
 						createdAt: new Date(),
 						updatedAt: new Date(),
 						optionText: body.optionText,
-						cruise: {
-							connect: {
-								id: body.cruiseId,
-							},
-						},
+
 						deck: {
 							create: {
 								title: body.deck.title,
@@ -208,12 +204,6 @@ export const boatService = {
 				status: true,
 				createdAt: true,
 				updatedAt: true,
-				cruise: {
-					select: {
-						title: true,
-						id: true,
-					},
-				},
 			},
 			orderBy: orderBy,
 			take: 10,
@@ -237,7 +227,6 @@ export const boatService = {
 			include: {
 				abouts: true,
 				cabins: true,
-				cruise: true,
 				deck: true,
 				experiences: true,
 				facilities: true,
@@ -364,11 +353,6 @@ export const boatService = {
 				},
 				data: {
 					name: body.name,
-					cruise: {
-						connect: {
-							id: body.cruiseId,
-						},
-					},
 					description: body.description,
 					optionText: body.optionText,
 					updatedAt: new Date(),
