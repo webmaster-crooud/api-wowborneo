@@ -18,9 +18,8 @@ import { ApiError } from "./libs/apiResponse";
 import { StatusCodes } from "http-status-codes";
 import { transactionRoutes } from "./modules/transaction/transaction.routes";
 import "./job/updateExchangeRates";
+import "./job/updateCompletedBooking";
 import { memberRoutes } from "./modules/member/member.routes";
-import { testing } from "./testing";
-testing();
 // Mengatasi deprecation warning untuk punycode
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 // (global as any).URL = URL;
