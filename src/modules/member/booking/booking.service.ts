@@ -88,6 +88,7 @@ export const bookingService = {
 			},
 			select: {
 				id: true,
+				email: true,
 				bookingStatus: true,
 				paymentStatus: true,
 				paymentType: true,
@@ -160,6 +161,7 @@ export const bookingService = {
 
 		const formatedData: IMemberBookingDetailResponse = {
 			id: booking.id,
+			email: booking.email,
 			bookingStatus: booking.bookingStatus,
 			paymentStatus: booking.paymentStatus,
 			paymentType: booking.paymentType,

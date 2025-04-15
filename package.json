@@ -6,8 +6,9 @@
 	"type": "module",
 	"scripts": {
 		"dev": "NODE_ENV=development nodemon --no-deprecation --exec tsx src/app.ts",
-		"start": "NODE_ENV=production node build/app.js",
-		"build": "tsc",
+		"start": "NODE_ENV=production node dist/app.js",
+		"build": "tsc && sh scripts/fix-imports.sh",
+		"fix-imports": "find dist -type f -name '*.js' -exec sed -i '' 's/\\.js\"/\"/g' {} +",
 		"lint": "eslint . --fix",
 		"format": "prettier --write .",
 		"prisma:generate": "prisma generate",

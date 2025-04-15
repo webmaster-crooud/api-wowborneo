@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
-import authService from "./auth.service.js";
-import { RegisterInterface } from "../../types/auth.js";
-import { ApiError, ApiResponse } from "../../libs/apiResponse.js";
-import { env } from "../../configs/env.js";
-import prisma from "../../configs/database.js";
+import authService from "./auth.service";
+import { RegisterInterface } from "../../types/auth";
+import { ApiError, ApiResponse } from "../../libs/apiResponse";
+import { env } from "../../configs/env";
+import prisma from "../../configs/database";
 
 const registerController = async (req: Request, res: Response) => {
 	try {

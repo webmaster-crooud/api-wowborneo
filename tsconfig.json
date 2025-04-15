@@ -1,16 +1,16 @@
 {
 	"compilerOptions": {
-		"target": "ES2020", // Target output JavaScript (ES2020 atau ESNext)
-		"module": "ES2020", // Gunakan module system ES2020 (atau "ESNext" jika diinginkan)
-		"moduleResolution": "node", // Resolusi modul ala Node.js
-		"strict": true, // Aktifkan strict mode
-		"esModuleInterop": true, // Mempermudah impor modul CommonJS
-		"forceConsistentCasingInFileNames": true, // Konsistensi penulisan huruf besar/kecil pada nama file
-		"skipLibCheck": true, // Lewati pemeriksaan type pada file declaration library
-		"rootDir": "./src", // Direktori sumber kode TypeScript
-		"outDir": "./dist", // Direktori output file JavaScript hasil kompilasi
-		"resolveJsonModule": true // Mengizinkan impor file JSON sebagai modul
+		"target": "ES2020",
+		"module": "ES2020",
+		"moduleResolution": "node",
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"esModuleInterop": true,
+		"strict": true,
+		"forceConsistentCasingInFileNames": true,
+		"skipLibCheck": true,
+		"resolveJsonModule": true
 	},
-	"include": ["src/**/*.ts", "src/**/*.d.ts"],
+	"include": ["src/**/*.ts"],
 	"exclude": ["node_modules"]
 }

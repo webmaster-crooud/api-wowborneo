@@ -1,10 +1,10 @@
 import express, { NextFunction, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
-import authController from "./auth.controller.js";
-import { authRegisterValidation, changePassword, emailVerifyValidation, forgotPasswordValidation, loginValidation, resendEmailVerifyValidation } from "./auth.validation.js";
-import { validate } from "../../middlewares/validate.middleware.js";
-import { authMiddleware } from "../../middlewares/auth.middleware.js";
-import { ApiError } from "../../libs/apiResponse.js";
+import authController from "./auth.controller";
+import { authRegisterValidation, changePassword, emailVerifyValidation, forgotPasswordValidation, loginValidation, resendEmailVerifyValidation } from "./auth.validation";
+import { validate } from "../../middlewares/validate.middleware";
+import { authMiddleware } from "../../middlewares/auth.middleware";
+import { ApiError } from "../../libs/apiResponse";
 import { StatusCodes } from "http-status-codes";
 
 export const authRoutes = express.Router();
