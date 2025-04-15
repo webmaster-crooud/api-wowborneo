@@ -17,8 +17,9 @@ jobs:
                   username: ${{ secrets.SSH_USERNAME }}
                   key: ${{ secrets.SSH_PRIVATE_KEY }}
                   script: |
-                      cd /var/api-wowborneo
+                      cd /var/www/api-wowborneo
                       git pull origin main
                       npm ci --omit=dev
+                      npm run build  
                       npx dotenv -e .env.production -- prisma migrate deploy
                       pm2 restart ecosystem.config.cjs
