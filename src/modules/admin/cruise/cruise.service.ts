@@ -119,7 +119,6 @@ export const cruiseService = {
 								cruiseId: cruise.id,
 								title: data.title,
 								description: data.description,
-								createdAt: new Date(),
 							},
 						})
 					)
@@ -133,7 +132,6 @@ export const cruiseService = {
 								cruiseId: cruise.id,
 								title: data.title,
 								text: data.text,
-								createdAt: new Date(),
 							},
 						})
 					)
@@ -475,7 +473,7 @@ export const cruiseService = {
 			},
 		});
 		if (cruise?.status === "PENDING") {
-			if (account?.role.name !== "admin") throw new ApiError(StatusCodes.FORBIDDEN, "Oppss... Your account can't access this service");
+			if (account?.role.name === "admin" && action === "ACTIVED") throw new ApiError(StatusCodes.FORBIDDEN, "Oppss... Your account can't access this service");
 		}
 		if (cruise?.status === action) throw new ApiError(StatusCodes.OK, `${cruise.title} has already ${cruise.status}`);
 		else

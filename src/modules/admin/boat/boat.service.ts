@@ -382,9 +382,9 @@ export const boatService = {
 			},
 		});
 		if (boat?.status === "PENDING") {
-			if (account?.role.name !== "admin" && action === "ACTIVED") throw new ApiError(StatusCodes.FORBIDDEN, "Oppss... Your account can't access this service");
+			if (account?.role.name === "admin" && action === "ACTIVED") throw new ApiError(StatusCodes.FORBIDDEN, "Oppss... Your account can't access this service");
 		}
-		if (boat?.status === action) throw new ApiError(StatusCodes.OK, `${boat.name} has already ${boat.status}`);
+		if (boat?.status === action) throw new ApiError(StatusCodes.BAD_REQUEST, `${boat.name} has already ${boat.status}`);
 		else
 			return await prisma.boat.update({
 				where: {

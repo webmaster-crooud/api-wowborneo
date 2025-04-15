@@ -7,6 +7,17 @@ import { Prisma, STATUS } from "@prisma/client";
 export type GetCruisesResponse = IListScheduleResponse[];
 export const scheduleService = {
 	async create(accountId: string, body: IScheduleRequestBody) {
+		if (body.addons && body.addons.length > 0) {
+			const addonIds = body.addons.map((a) => a.addonId);
+			const existingAddons = await prisma.addon.findMany({
+				where: { id: { in: addonIds } },
+				select: { id: true },
+			});
+
+			if (existingAddons.length !== addonIds.length) {
+				throw new ApiError(StatusCodes.BAD_REQUEST, "One or more addons not found");
+			}
+		}
 		const departureAt = new Date(body.departureAt);
 		const startOfDay = new Date(departureAt);
 		startOfDay.setUTCHours(0, 0, 0, 0); // Start of day in UTC
@@ -50,20 +61,34 @@ export const scheduleService = {
 		const formattedArrivalAt = arrivalDate.toISOString(); // Keep full ISO string
 
 		// 6. Buat Schedule
-		await prisma.schedule.create({
-			data: {
-				cruise: { connect: { id: cruise.id } },
-				status: !body.status ? (account?.role?.name === "admin" ? STATUS.PENDING : STATUS.ACTIVED) : (body.status as STATUS),
-				departureAt: departureAt, // Direct Date object or ISO string
-				arrivalAt: formattedArrivalAt, // Full ISO-8601 string
-				createdAt: new Date(),
-				updatedAt: new Date(),
-				boat: {
-					connect: {
-						id: body.boatId,
+		await prisma.$transaction(async (prisma) => {
+			const schedule = await prisma.schedule.create({
+				data: {
+					cruise: { connect: { id: cruise.id } },
+					status: !body.status ? (account?.role?.name === "admin" ? STATUS.PENDING : STATUS.ACTIVED) : (body.status as STATUS),
+					departureAt: departureAt, // Direct Date object or ISO string
+					arrivalAt: formattedArrivalAt, // Full ISO-8601 string
+					createdAt: new Date(),
+					updatedAt: new Date(),
+					durationDay: Number(cruise.duration),
+					boat: {
+						connect: {
+							id: body.boatId,
+						},
 					},
 				},
-			},
+			});
+
+			if (body.addons && body.addons.length > 0) {
+				await prisma.scheduleAddon.createMany({
+					data: body.addons.map((addon) => ({
+						scheduleId: schedule.id,
+						addonId: addon.addonId,
+					})),
+				});
+			}
+
+			return schedule;
 		});
 	},
 
@@ -132,38 +157,49 @@ export const scheduleService = {
 				source: true,
 			},
 		});
-		// 3. Hitung booking yang sukses per cabin dan schedule
+
+		// 4. Buat mapping untuk akses cepat
+
+		// 4. Buat mapping ID cruise -> cover
+		const coverMap = new Map(cruiseCovers.map((cover) => [cover.entityId, cover.source]));
 		const bookings = await prisma.booking.groupBy({
 			by: ["scheduleId", "cabinId"],
 			where: {
 				scheduleId: { in: scheduleIds },
 				cabinId: { in: cabinIds },
-				paymentStatus: "SUCCESS",
+				bookingStatus: {
+					in: ["DONE", "DOWNPAYMENT", "CONFIRMED", "CHECKIN", "COMPLETED"],
+				},
 			},
 			_count: true,
 		});
-
-		// 4. Buat mapping untuk akses cepat
 		const bookingCountMap = new Map();
 		bookings.forEach((b) => {
 			const key = `${b.scheduleId}-${b.cabinId}`;
 			bookingCountMap.set(key, b._count);
 		});
-
-		// 4. Buat mapping ID cruise -> cover
-		const coverMap = new Map(cruiseCovers.map((cover) => [cover.entityId, cover.source]));
-
 		// 5. Format data response
 		const formattedData: IListScheduleResponse[] = schedules.map((item) => {
 			// Hitung total kapasitas dan booking
+			// 1. Hitung total kapasitas semua cabin
 			const totalCapacity = item.boat.cabins.reduce((sum, cabin) => sum + Number(cabin.maxCapacity), 0);
 
+			// 2. Buat map untuk menyimpan jumlah booking per cabin
+			const cabinBookingsMap = new Map<string, number>();
+			bookings.forEach((b) => {
+				if (b.scheduleId === item.id) {
+					cabinBookingsMap.set(b.cabinId.toString(), b._count);
+				}
+			});
+
+			// 3. Hitung total booked dengan mengalikan jumlah booking dengan maxCapacity
 			const totalBooked = item.boat.cabins.reduce((sum, cabin) => {
-				const key = `${item.id}-${cabin.id}`;
-				return sum + (bookingCountMap.get(key) || 0);
+				const bookingCount = cabinBookingsMap.get(cabin.id.toString()) || 0;
+				return sum + bookingCount * Number(cabin.maxCapacity);
 			}, 0);
 
-			// Cari harga termurah
+			// 4. Hitung ketersediaan cabin
+			// 5. Cari harga termurah
 			const minPrice = Math.min(...item.boat.cabins.map((cabin) => Number(cabin.price)));
 
 			return {
@@ -175,7 +211,7 @@ export const scheduleService = {
 				departure: item.cruise.departure || "",
 				status: item.status,
 				min_price: minPrice,
-				availableCabin: totalCapacity - totalBooked,
+				availableCabin: totalCapacity,
 				bookedCabin: totalBooked,
 				cover: coverMap.get(item.cruise.id) || null, // Tambahkan cover dari mapping
 			};
@@ -238,6 +274,31 @@ export const scheduleService = {
 						},
 					},
 				},
+				scheduleAddons: {
+					select: {
+						addon: {
+							select: {
+								id: true,
+								title: true,
+								price: true,
+							},
+						},
+					},
+					where: {
+						addon: {
+							OR: [{ status: { not: "DELETED" } }, { status: { not: "PENDING" } }],
+						},
+					},
+				},
+				bookings: {
+					where: {
+						scheduleId: scheduleId,
+					},
+					select: {
+						cabinId: true,
+						bookingGuests: {},
+					},
+				},
 			},
 		});
 
@@ -268,6 +329,16 @@ export const scheduleService = {
 			status: result?.status || "PENDING",
 			arrivalAt: result?.arrivalAt || "",
 			departureAt: result?.departureAt || "",
+			addons:
+				result?.scheduleAddons.map(({ addon }) => ({
+					id: addon.id,
+					price: addon.price,
+					title: addon.title,
+					cover: "",
+					createdAt: "",
+					description: "",
+					updatedAt: "",
+				})) || [],
 			cruise: {
 				id: result?.cruise.id || "",
 				cover: coverCruise?.source || null,
@@ -291,6 +362,10 @@ export const scheduleService = {
 					cover: imageDeck?.source || null,
 				},
 			},
+			bookingCabins:
+				result?.bookings.map((booking) => ({
+					cabinId: booking.cabinId,
+				})) || [],
 		};
 	},
 
@@ -316,17 +391,20 @@ export const scheduleService = {
 	async update(scheduleId: string, body: IScheduleRequestBody) {
 		const departureAt = new Date(body.departureAt);
 		const startOfDay = new Date(departureAt);
-		startOfDay.setUTCHours(0, 0, 0, 0); // Start of day in UTC
+		startOfDay.setUTCHours(0, 0, 0, 0);
 		const endOfDay = new Date(startOfDay);
-		endOfDay.setUTCDate(startOfDay.getUTCDate() + 1); // Start of next day
+		endOfDay.setUTCDate(startOfDay.getUTCDate() + 1);
 
-		// 2. Check for existing schedules within the same day
+		// Check for existing schedules (excluding current schedule)
 		const countCruise = await prisma.schedule.count({
 			where: {
 				cruise: { id: body.cruiseId },
 				departureAt: {
-					gte: startOfDay, // Greater than or equal to start of day
-					lt: endOfDay, // Less than next day
+					gte: startOfDay,
+					lt: endOfDay,
+				},
+				NOT: {
+					id: scheduleId,
 				},
 			},
 		});
@@ -335,7 +413,7 @@ export const scheduleService = {
 			throw new ApiError(StatusCodes.BAD_REQUEST, "Cruise already exists for this date");
 		}
 
-		// 3. Ambil durasi Cruise
+		// Get cruise duration
 		const cruise = await prisma.cruise.findUnique({
 			where: { id: body.cruiseId },
 			select: { id: true, duration: true },
@@ -345,27 +423,75 @@ export const scheduleService = {
 			throw new ApiError(StatusCodes.NOT_FOUND, "Cruise not found");
 		}
 
-		// 5. Hitung arrivalAt
+		// Calculate arrivalAt
 		const durationDays = parseInt(cruise.duration) || 0;
 		const arrivalDate = new Date(departureAt.getTime() + durationDays * 24 * 60 * 60 * 1000);
-		const formattedArrivalAt = arrivalDate.toISOString(); // Keep full ISO string
+		const formattedArrivalAt = arrivalDate.toISOString();
 
-		// 6. Buat Schedule
-		await prisma.schedule.update({
-			where: {
-				id: scheduleId,
-			},
-			data: {
-				cruise: { connect: { id: cruise.id } },
-				departureAt: departureAt, // Direct Date object or ISO string
-				arrivalAt: formattedArrivalAt, // Full ISO-8601 string
-				updatedAt: new Date(),
-				boat: {
-					connect: {
-						id: body.boatId,
-					},
+		// Validate addons exist if provided
+		if (body.addons && body.addons.length > 0) {
+			const addonIds = body.addons.map((a) => Number(a.addonId));
+			const existingAddons = await prisma.addon.findMany({
+				where: { id: { in: addonIds } },
+				select: { id: true },
+			});
+
+			if (existingAddons.length !== addonIds.length) {
+				throw new ApiError(StatusCodes.BAD_REQUEST, "One or more addons not found");
+			}
+		}
+
+		// Update schedule within a transaction
+		return await prisma.$transaction(async (prisma) => {
+			// Update schedule
+			const updatedSchedule = await prisma.schedule.update({
+				where: { id: scheduleId },
+				data: {
+					cruise: { connect: { id: cruise.id } },
+					departureAt: departureAt,
+					arrivalAt: formattedArrivalAt,
+					updatedAt: new Date(),
+					boat: { connect: { id: body.boatId } },
 				},
-			},
+			});
+
+			// Handle addons update
+			// First get current addons
+			const currentAddons = await prisma.scheduleAddon.findMany({
+				where: { scheduleId },
+				select: { addonId: true },
+			});
+
+			// Determine addons to add and remove
+			const currentAddonIds = currentAddons.map((a) => Number(a.addonId));
+			const newAddonIds = body.addons?.map((a) => Number(a.addonId)) || [];
+
+			console.log(currentAddonIds);
+			console.log(newAddonIds);
+			// Addons to remove
+			const addonsToRemove = currentAddonIds.filter((id) => !newAddonIds.includes(id));
+			if (addonsToRemove.length > 0) {
+				await prisma.scheduleAddon.deleteMany({
+					where: {
+						scheduleId,
+						addonId: { in: addonsToRemove },
+					},
+				});
+			}
+
+			// Addons to add
+			const addonsToAdd = newAddonIds.filter((id) => !currentAddonIds.includes(id));
+			if (addonsToAdd.length > 0) {
+				await prisma.scheduleAddon.createMany({
+					data: addonsToAdd.map((addonId: number) => ({
+						scheduleId,
+						addonId,
+					})),
+				});
+			}
+
+			console.log(updatedSchedule);
+			return updatedSchedule;
 		});
 	},
 
@@ -425,7 +551,9 @@ export const scheduleService = {
 			where: {
 				scheduleId: { in: scheduleIds },
 				cabinId: { in: cabinIds },
-				paymentStatus: "SUCCESS",
+				bookingStatus: {
+					in: ["DONE", "CONFIRMED", "DOWNPAYMENT"],
+				},
 			},
 			_count: true,
 		});

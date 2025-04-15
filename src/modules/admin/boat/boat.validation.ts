@@ -8,7 +8,7 @@ export const sanitizeString = (fieldName: string) =>
 		.max(100, `${fieldName} must be less than 100 characters`)
 		.trim();
 
-export const positiveDecimal = (fieldName: string) => z.number().positive(`${fieldName} must be positive`);
+export const positiveDecimal = (fieldName: string) => z.number({ message: `${fieldName} Must be number` }).positive(`${fieldName} must be positive`);
 
 // Base validation schemas for related models
 export const AboutValidation = z.object({

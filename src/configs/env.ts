@@ -14,6 +14,7 @@ export const env = cleanEnv(process.env, {
 
 	HOME_URL: str(),
 	AUTH_URL: str(),
+	TRANSACTION_URL: str(),
 	DASHBOARD_URL: str(),
 
 	ACCESS_TOKEN_SECRET: str(),
@@ -28,4 +29,7 @@ export const env = cleanEnv(process.env, {
 	S3_SECRET_KEY: str(),
 	S3_ENDPOINT: str(),
 	S3_REGION: str(),
+
+	DOKU_CLIENT_ID: str(),
+	DOKU_SECRET_KEY: str(),
 });

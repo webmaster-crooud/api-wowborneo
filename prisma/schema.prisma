@@ -1,11 +1,11 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model User {
@@ -16,7 +16,7 @@ model User {
   phone      String      @db.VarChar(15) @unique
   status     STATUS      @default(PENDING)
   createdAt  DateTime    @db.Timestamp() @map("created_at")
-  updatedAt  DateTime    @db.Timestamp() @map("updated_at")
+  updatedAt  DateTime    @db.Timestamp() @updatedAt @map("updated_at")
 
   account    Account?
   @@map("users")
@@ -31,29 +31,30 @@ model Account {
   userAgent   String      @db.Text @map("user_agent")
   googleId    String?     @db.Text @map("google_id")
   status      STATUS      @default(PENDING)
-  roleId      Int         @db.Integer @map("role_id")
+  roleId      Int         @db.Int @map("role_id")
   createdAt   DateTime    @db.Timestamp() @map("created_at")
-  updatedAt   DateTime    @db.Timestamp() @map("updated_at")
+  updatedAt   DateTime    @db.Timestamp() @updatedAt @map("updated_at")
 
-  user        User        @relation(fields: [userId], references: [id])
-  role        Role        @relation(fields: [roleId], references: [id])
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        Role        @relation(fields: [roleId], references: [id], onDelete: Restrict)
   emailVerify EmailVerify[]
   accountRefreshToken AccountRefreshToken?
   bookings Booking[]
+  transactions Transaction[]
 
   @@map("accounts")
 }
 
 model EmailVerify {
-  id         Int         @db.Integer @id @default(autoincrement())
+  id         Int         @db.Int @id @default(autoincrement())
   accountId  String      @db.VarChar(100) @map("account_id")
   token      String      @db.VarChar(6) @unique
   type       TYPEEMAILVERIFY @default(REGISTER)
   createdAt  DateTime    @db.Timestamp() @map("created_at")
-  updatedAt  DateTime    @db.Timestamp() @map("updated_at")
+  updatedAt  DateTime    @db.Timestamp() @updatedAt @map("updated_at")
   expiredAt  DateTime    @db.Timestamp() @map("expired_at")
 
-  accounts   Account     @relation(fields: [accountId], references: [id])
+  accounts   Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
   
   @@map("email_verify")
 }
@@ -62,22 +63,22 @@ model AccountRefreshToken {
   email      String      @db.VarChar(100) @unique
   token      String      @db.Text
   createdAt  DateTime    @db.Timestamp() @map("created_at")
-  updatedAt  DateTime    @db.Timestamp() @map("updated_at")
+  updatedAt  DateTime    @db.Timestamp() @updatedAt @map("updated_at")
   expiredAt  DateTime    @db.Timestamp() @map("expired_at")
 
   accountId  String      @db.VarChar(100) @map("account_id") @unique
-  account    Account     @relation(fields: [accountId], references: [id])
+  account    Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
   
   @@map("account_refresh_token")
 }
 
 model Role {
-  id          Int         @db.Integer @default(autoincrement()) @id
+  id          Int         @db.Int @default(autoincrement()) @id
   name        String      @db.VarChar(100) @unique @default("MEMBER")
   description String?     @db.Text
   status      STATUS      @default(PENDING)
   createdAt   DateTime    @db.Timestamp() @map("created_at")
-  updatedAt   DateTime    @db.Timestamp() @map("updated_at")
+  updatedAt   DateTime    @db.Timestamp() @updatedAt @map("updated_at")
 
   accounts    Account[]
   
@@ -96,14 +97,13 @@ model Cruise {
 
   status     STATUS      @default(ACTIVED)
 
-  // Introduction disimpan langsung di model Cruise
   introductionTitle   String?             @db.VarChar(100) @map("introduction_title")
   introductionText    String?             @db.Text         @map("introduction_text")
   
   cta                 String?             @db.Text
 
   createdAt  DateTime    @db.Timestamp() @map("created_at")
-  updatedAt  DateTime    @db.Timestamp() @map("updated_at")
+  updatedAt  DateTime    @db.Timestamp() @updatedAt @map("updated_at")
 
   destinations Destination[]
   highlights Highlight[]
@@ -115,64 +115,62 @@ model Cruise {
 }
 
 model Image { 
-  id         Int         @db.Integer @id @default(autoincrement())
+  id         Int         @db.Int @id @default(autoincrement())
   imageType  IMAGETYPE   @map("image_type")
   alt        String?     @db.VarChar(100)
 
   filename   String      @db.VarChar(255)
-  source     String     @db.Text
+  source     String      @db.VarChar(255)
   mimetype   String      @db.VarChar(100)
-  size       Int         @db.Integer
+  size       Int         @db.Int
 
   entityId   String      @db.VarChar(50) @map("entity_id")
   entityType String      @db.VarChar(50) @map("entity_type")
-  
   @@map("images")
   @@index([entityId, entityType, source, filename])
 }
 
 model Highlight {
-  id          Int       @id @default(autoincrement()) @db.Integer
-  title       String   @db.VarChar(100)
+  id          Int       @id @default(autoincrement()) @db.Int
+  title       String    @db.VarChar(100)
   description String?   @db.Text
   
   cruiseId    String    @db.VarChar(50) @map("cruise_id")
   cruise      Cruise    @relation(fields: [cruiseId], references: [id], onDelete: Cascade)
   
   createdAt  DateTime    @db.Timestamp() @map("created_at")
-  updatedAt  DateTime    @db.Timestamp() @map("updated_at")
+  updatedAt  DateTime    @db.Timestamp() @updatedAt @map("updated_at")
   
   @@map("highlights")
   @@index([cruiseId])
 }
+
 model Include {
-  id          Int       @id @default(autoincrement()) @db.Integer
-  title       String   @db.VarChar(100)
+  id          Int       @id @default(autoincrement()) @db.Int
+  title       String    @db.VarChar(100)
   description String?   @db.Text
   
   cruiseId    String    @db.VarChar(50) @map("cruise_id")
   cruise      Cruise    @relation(fields: [cruiseId], references: [id], onDelete: Cascade)
   
-  createdAt   DateTime  @default(now()) @db.Timestamp() @map("created_at")
-  
   @@map("include")
   @@index([cruiseId])
 }
+
 model Information {
-  id          Int       @id @default(autoincrement()) @db.Integer
-  title       String   @db.VarChar(100)
+  id          Int       @id @default(autoincrement()) @db.Int
+  title       String    @db.VarChar(100)
   text        String?   @db.Text
   
   cruiseId    String    @db.VarChar(50) @map("cruise_id")
   cruise      Cruise    @relation(fields: [cruiseId], references: [id], onDelete: Cascade)
   
-  createdAt   DateTime  @default(now()) @db.Timestamp() @map("created_at")
-  
   @@map("informations")
   @@index([cruiseId])
 }
+
 model Destination {
-  id         Int         @id @db.Integer @default(autoincrement())
+  id         Int         @id @db.Int @default(autoincrement())
   cruiseId   String      @db.VarChar(50) @map("cruise_id")
   title      String      @db.VarChar(100)
   description String?    @db.Text
@@ -180,14 +178,13 @@ model Destination {
 
   status     STATUS      @default(ACTIVED)
   createdAt  DateTime    @db.Timestamp() @map("created_at")
-  updatedAt  DateTime    @db.Timestamp() @map("updated_at")
+  updatedAt  DateTime    @db.Timestamp() @updatedAt @map("updated_at")
 
-  cruise     Cruise      @relation(fields: [cruiseId], references: [id])
+  cruise     Cruise      @relation(fields: [cruiseId], references: [id], onDelete: Cascade)
   
   @@map("destinations")
   @@index([cruiseId])
 }
-
 
 model Boat {
   id String @db.VarChar(100) @id @default(cuid())
@@ -198,7 +195,8 @@ model Boat {
   
   status STATUS @default(PENDING)
   createdAt  DateTime    @db.Timestamp() @map("created_at")
-  updatedAt  DateTime    @db.Timestamp() @map("updated_at")
+  updatedAt  DateTime    @db.Timestamp() @updatedAt @map("updated_at")
+  
   abouts About[]
   experiences Experience[]
   facilities Facility[]
@@ -208,99 +206,329 @@ model Boat {
 
   @@map("boats")
 }
+
 model Cabin {
-  id Int @db.Integer @default(autoincrement()) @id
+  id Int @db.Int @default(autoincrement()) @id
   name String @db.VarChar(100) 
   type TYPECABIN
-  maxCapacity Int @db.Integer @map("max_capacity")
+  maxCapacity Int @db.Int @map("max_capacity")
   description String? @db.Text
-  price Decimal @db.Decimal(12,0)
+  price Decimal @db.Decimal(12,2)
   boatId String @db.VarChar(100) @map("boat_id")
-  boat Boat @relation(fields: [boatId], references: [id])
+  
+  boat Boat @relation(fields: [boatId], references: [id], onDelete: Cascade)
   bookings Booking[]
   @@map("cabins")
+  @@index([boatId])
 }
+
 model About {
-  id Int @id @db.Integer @default(autoincrement())
+  id Int @id @db.Int @default(autoincrement())
   title String @db.VarChar(100)
   description String? @db.Text
   boatId String @db.VarChar(100) @map("boat_id")
-  boat Boat @relation(fields: [boatId], references: [id])
+  
+  boat Boat @relation(fields: [boatId], references: [id], onDelete: Cascade)
+  
   @@map("abouts")
+  @@index([boatId])
 }
+
 model Experience {
-  id Int @id @db.Integer @default(autoincrement())
+  id Int @id @db.Int @default(autoincrement())
   title String @db.VarChar(100)
   description String? @db.Text
   boatId String @db.VarChar(100) @map("boat_id")
-  boat Boat @relation(fields: [boatId], references: [id])
+  
+  boat Boat @relation(fields: [boatId], references: [id], onDelete: Cascade)
+  
+  
   @@map("experiences")
+  @@index([boatId])
 }
+
 model Facility {
-  id Int @db.Integer @id @default(autoincrement())
+  id Int @db.Int @id @default(autoincrement())
   name String @db.VarChar(100) 
   description String? @db.VarChar(100)
   icon String? @db.VarChar(100)
   boatId String @db.VarChar(100) @map("boat_id")
-  boat Boat @relation(fields: [boatId], references: [id])
+  
+  boat Boat @relation(fields: [boatId], references: [id], onDelete: Cascade)
+  
   @@map("facilities")
+  @@index([boatId])
 }
-model Deck{
-  id Int @db.Integer @id @default(autoincrement())
+
+model Deck {
+  id Int @db.Int @id @default(autoincrement())
   title String @db.VarChar(100)
   description String? @db.VarChar(100)
-  boatId String @db.VarChar(100) @unique
-  boat Boat @relation(fields: [boatId], references: [id])
+  boatId String @db.VarChar(100) @unique @map("boat_id")
+  
+  boat Boat @relation(fields: [boatId], references: [id], onDelete: Cascade)
   @@map("decks")
 }
 
 model Schedule {
   id          String   @id @default(cuid())
   cruiseId    String   @db.VarChar(100) @map("cruise_id")
-  boatId      String @db.VarChar(100) @map("boatId")
-  departureAt DateTime @db.Date() @map("departure_at") // Tanggal keberangkatan
-  arrivalAt   DateTime @db.Date() @map("arrival_at") // Tanggal kedatangan (opsional, bisa dihitung dari durasi Cruise)
-  status      STATUS   @default(ACTIVED) // STATUS seperti ACTIVE, SOLD_OUT, etc.
+  boatId      String   @db.VarChar(100) @map("boat_id")
+  departureAt DateTime @db.Date() @map("departure_at")
+  arrivalAt   DateTime @db.Date() @map("arrival_at")
+  status      STATUS   @default(ACTIVED)
+  durationDay Int      @map("duration_day")
+  availableCabin Int   @default(0) @map("available_cabin")
+  totalCapacity Int    @default(0) @map("total_capacity") // Total kapasitas dari semua cabin
 
   createdAt  DateTime    @db.Timestamp() @map("created_at")
-  updatedAt  DateTime    @db.Timestamp() @map("updated_at")
-  cruise      Cruise   @relation(fields: [cruiseId], references: [id])
-  boat      Boat   @relation(fields: [boatId], references: [id])
-  bookings Booking[]
+  updatedAt  DateTime    @db.Timestamp() @updatedAt @map("updated_at")
+  
+  cruise     Cruise   @relation(fields: [cruiseId], references: [id], onDelete: Restrict)
+  boat       Boat     @relation(fields: [boatId], references: [id], onDelete: Restrict)
+  bookings   Booking[]
+  scheduleAddons ScheduleAddon[]
   @@index([departureAt])
   @@index([cruiseId])
   @@index([boatId])
+  @@index([status])
   @@map("schedules")
 }
 
 model Booking {
   id             String    @id @default(cuid())
-  accountId      String    @db.VarChar(100) @map("account_id")
-  cabinId        Int       @db.Integer @map("cabin_id")
+  email          String    @db.VarChar(100) 
+  cabinId        Int       @db.Int @map("cabin_id")
   scheduleId     String    @db.VarChar(100) @map("schedule_id")
-  totalPrice     Decimal   @db.Decimal(12,2) @map("total_price")// Harga total (harga cabin * durasi Cruise)
-  paymentStatus  PAYMENT_STATUS @default(PENDING) @map("payment_status")
-  bookingDate    DateTime  @db.Timestamp() @map("booking_date")
-  paymentMethod  String?   @db.VarChar(100) @map("payment_method")
-  referenceCode  String?   @db.VarChar(50) @map("reference_code") // Kode referensi pembayaran
-
-  account        Account   @relation(fields: [accountId], references: [id])
-  cabin          Cabin     @relation(fields: [cabinId], references: [id])
-  schedule       Schedule  @relation(fields: [scheduleId], references: [id])
   
+  // Data harga
+  taxRate        Decimal   @db.Decimal(5,2) @map("tax_rate")
+  taxAmount      Decimal   @db.Decimal(12,2) @map("tax_amount")
+  amountPayment      Decimal   @db.Decimal(12,2) @map("amount_payment")
+  amountPaymentIDR      Decimal   @db.Decimal(12,2) @map("amount_payment_idr")
+  balancePayment      Decimal   @db.Decimal(12,2) @map("balance_payment") @default(0)
+  balancePaymentIDR      Decimal   @db.Decimal(12,2) @map("balance_payment_idr") @default(0)
+  subTotalPrice  Decimal   @db.Decimal(12,2) @map("sub_total_price")
+  discount       Decimal   @db.Decimal(12,2)
+  finalPrice     Decimal   @db.Decimal(12,2) @map("finalPrice")
+  
+  // Status dan informasi
+  bookingStatus  BOOKING_STATUS @default(PENDING) @map("booking_status")
+  paymentStatus  PAYMENT_STATUS @default(PENDING) @map("payment_status")
+  paymentType    String?   @db.VarChar(100) @map("payment_type") @default("Full Payment")
+  totalAdult     Int       @db.Int @default(1) @map("total_adult")
+  totalChildren  Int       @db.Int @default(0) @map("total_children")
+  paymentMethod  String?   @db.VarChar(100) @map("payment_method") @default("DOKU")
+  referenceCode  String?   @db.VarChar(50) @map("reference_code")
+  
+  // Informasi untuk tampilan dan audit
+  cruiseTitle    String    @db.VarChar(100)
+  boatName       String    @db.VarChar(100)
+  cabinName      String    @db.VarChar(100)
+  notes          String?   @db.Text
+  cancelReason   String?   @db.Text @map("cancel_reason")
+
+  // Timestamps
+  createdAt      DateTime  @db.Timestamp() @map("created_at")
+  updatedAt      DateTime  @db.Timestamp() @updatedAt @map("updated_at")
+  paidAt         DateTime? @db.Timestamp() @map("paid_at")
+  confirmedAt    DateTime? @db.Timestamp() @map("confirmed_at")
+  confirmedBy    String?   @db.VarChar(100) @map("confirmed_by")
+  cancelledAt    DateTime? @db.Timestamp() @map("cancelled_at")
+  
+  // Relasi
+  account        Account   @relation(fields: [email], references: [email], onDelete: Restrict)
+  cabin          Cabin     @relation(fields: [cabinId], references: [id], onDelete: Restrict)
+  schedule       Schedule  @relation(fields: [scheduleId], references: [id], onDelete: Restrict)
+  bookingAddons  BookingAddon[]
+  bookingGuests  BookingGuest[]
+  transactions   Transaction[]
+  refunds        Refund[]
+
+  @@index([id, email])
+  @@index([createdAt])
+  @@index([paymentStatus])
+  @@index([bookingStatus])
+  @@index([scheduleId])
   @@map("bookings")
 }
 
-model Log {
-  id         Int         @db.Integer @id @default(autoincrement())
-  accountId  String      @db.VarChar(100) @map("account_id")
-  action     String      @db.VarChar(100)
-  table      String      @db.VarChar(100)
-  status     STATUSLOG
-  createdAt  DateTime    @db.Timestamp() @map("created_at")
+// Model baru untuk transaksi
+model Transaction {
+  id             String    @id @default(cuid())
+  bookingId      String    @db.VarChar(100) @map("booking_id")
+  email      String    @db.VarChar(100) 
+  amount         Decimal   @db.Decimal(12,2)
+  amountIDR         Decimal   @db.Decimal(12,2) @map("amount_idr")
+  paymentMethod  String    @db.VarChar(100) @map("payment_method")
+  referenceCode  String?   @db.VarChar(50) @map("reference_code")
+  status         PAYMENT_STATUS @default(PENDING)
+  notes          String?   @db.Text
   
-  @@map("logs")
+  // Timestamps
+  createdAt      DateTime  @db.Timestamp() @map("created_at")
+  updatedAt      DateTime  @db.Timestamp() @updatedAt @map("updated_at")
+  processedAt    DateTime? @db.Timestamp() @map("processed_at")
+  
+  // Relasi
+  booking        Booking   @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  account        Account   @relation(fields: [email], references: [email], onDelete: Restrict)
+  
+  @@index([bookingId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+// Model baru untuk refund
+model Refund {
+  id             String    @id @default(cuid())
+  bookingId      String    @db.VarChar(100) @map("booking_id")
+  amount         Decimal   @db.Decimal(12,2)
+  reason         String    @db.Text
+  status         REFUND_STATUS @default(PENDING)
+  refundMethod   String    @db.VarChar(100) @map("refund_method")
+  referenceCode  String?   @db.VarChar(50) @map("reference_code")
+  
+  // Timestamps
+  createdAt      DateTime  @db.Timestamp() @map("created_at")
+  updatedAt      DateTime  @db.Timestamp() @updatedAt @map("updated_at")
+  processedAt    DateTime? @db.Timestamp() @map("processed_at")
+  processedBy    String?   @db.VarChar(100) @map("processed_by")
+  
+  // Relasi
+  booking        Booking   @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  
+  @@index([bookingId])
+  @@index([status])
+  @@map("refunds")
+}
+
+model BookingAddon {
+  id        Int       @db.Int @default(autoincrement()) @id
+  bookingId String    @db.VarChar(100) @map("booking_id")
+  addonId   Int       @db.Int @map("addon_id")
+  qty Int @db.Int @map("quantity")
+  totalPrice Decimal @db.Decimal(12,2) @map("total_price")
+
+  bookings  Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  addon     Addon     @relation(fields: [addonId], references: [id], onDelete: Restrict)
+  
+  createdAt DateTime  @db.Timestamp() @map("created_at")
+  updatedAt DateTime  @db.Timestamp() @updatedAt @map("updated_at")
+  
+  @@index([bookingId])
+  @@index([addonId])
+  @@map("booking_addons")
+}
+
+model ScheduleAddon {
+  scheduleId String   @db.VarChar(100) @map("schedule_id")
+  addonId    Int      @db.Int @map("addon_id")
+
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  addon      Addon    @relation(fields: [addonId], references: [id], onDelete: Cascade)
+  
+  @@id([scheduleId, addonId])
+  @@index([addonId])
+  @@map("schedule_addons")
+}
+
+model Addon { 
+  id          Int       @db.Int @id @default(autoincrement())
+  title       String    @db.VarChar(100)
+  description String?   @db.Text
+  cover       String?   @db.VarChar(100)
+  status      STATUS    @default(ACTIVED)
+  price       Decimal   @db.Decimal(12,2)
+  
+  createdAt   DateTime  @db.Timestamp() @map("created_at")
+  updatedAt   DateTime  @db.Timestamp() @updatedAt @map("updated_at")
+  
+  bookingAddons   BookingAddon[]
+  scheduleAddons  ScheduleAddon[]
+  
+  @@index([status])
+  @@map("add_ons")
+}
+
+model BookingGuest {
+  id        Int      @db.Int @default(autoincrement()) @id
+  bookingId String   @db.VarChar(100) @map("booking_id")
+  guestId   Int      @db.Int @map("guest_id")
+  price     Decimal  @db.Decimal(12,2)
+
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  guest     Guest    @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @db.Timestamp() @map("created_at")
+  updatedAt DateTime @db.Timestamp() @updatedAt @map("updated_at")
+  
+  @@index([bookingId])
+  @@map("booking_guests")
+}
+
+model Guest {
+  id        Int       @id @default(autoincrement())
+  email  String    @db.VarChar(100) @unique
+  firstName  String    @db.VarChar(100) @map("first_name")
+  lastName  String?    @db.VarChar(100) @map("last_name")
+  phone  String    @db.VarChar(100)
+  identityNumber String @db.VarChar(100) @map("identity_number") @unique
+  type      GUEST_TYPE @default(ADULT)
+  country String @db.VarChar(100)
+  document  String?   @db.VarChar(100)
+  
+  booking   BookingGuest[]
+  
+  createdAt DateTime  @db.Timestamp() @map("created_at")
+  updatedAt DateTime  @db.Timestamp() @updatedAt @map("updated_at")
+  
+  @@map("guests")
+}
+
+model ExchangeRate {
+  id        Int      @id @default(autoincrement())
+  rate      Float
+  updatedAt DateTime @default(now())
+
+  @@map("exchange_rates")
+}
+
+model Log {
+  id         Int       @db.Int @id @default(autoincrement())
+  accountId  String    @db.VarChar(100) @map("account_id")
+  action     String    @db.VarChar(100)
+  table      String    @db.VarChar(100)
+  entityId   String?   @db.VarChar(100) @map("entity_id")
+  details    String?   @db.Text
+  status     STATUSLOG
+  
+  createdAt  DateTime  @db.Timestamp() @map("created_at")
+  
   @@index([accountId])
+  @@index([entityId])
+  @@index([table])
+  @@map("logs")
+}
+
+
+// Enum tambahan
+enum BOOKING_STATUS {
+  PENDING
+  CONFIRMED
+  DOWNPAYMENT
+  CANCELLED
+  COMPLETED
+  CHECKIN
+  DONE  
+}
+
+enum REFUND_STATUS {
+  PENDING
+  APPROVED
+  REJECTED
+  PROCESSED
 }
 
 enum STATUS {
@@ -338,4 +566,14 @@ enum PAYMENT_STATUS {
   SUCCESS
   FAILED
   CANCELLED
+}
+
+enum GUEST_TYPE {
+  ADULT
+  CHILD
+}
+
+enum METHOD_PAYMENT {
+  FULLPAYMENT
+  DOWNPAYMENT
 }

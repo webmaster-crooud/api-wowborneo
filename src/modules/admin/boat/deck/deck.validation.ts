@@ -7,6 +7,6 @@ export const updateDeckValidation = z.object({
 	}),
 	body: z.object({
 		title: sanitizeString("Title").regex(/^[\w\s-'()]+$/, "Contains invalid characters"),
-		description: z.string().max(2000, "Description must be less than 2000 characters").optional(),
+		description: z.string().max(2000, "Description must be less than 2000 characters").optional().nullable(),
 	}),
 });

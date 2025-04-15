@@ -40,7 +40,7 @@ export const authMiddleware: RequestHandler = async (req: Request, res: Response
 			},
 		});
 
-		if (!account || account.status !== "ACTIVED" || account.user.status === "BLOCKED") {
+		if (!account || (account.status !== "ACTIVED" && account.status !== "FAVOURITED") || account.user.status === "BLOCKED") {
 			return next(new ApiError(StatusCodes.FORBIDDEN, "Akun terblokir"));
 		}
 

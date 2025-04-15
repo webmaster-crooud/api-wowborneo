@@ -16,13 +16,16 @@ import { accountRouter } from "./modules/account/account.routes";
 import { imageRoutes } from "./modules/image/image.routes";
 import { ApiError } from "./libs/apiResponse";
 import { StatusCodes } from "http-status-codes";
-
+import { transactionRoutes } from "./modules/transaction/transaction.routes";
+import "./job/updateExchangeRates";
+import { memberRoutes } from "./modules/member/member.routes";
+import { testing } from "./testing";
+testing();
 // Mengatasi deprecation warning untuk punycode
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 // (global as any).URL = URL;
 process.throwDeprecation = true;
 const app = express();
-
 // 1. Enhanced Security Middleware
 app.use(
 	helmet({
@@ -124,6 +127,8 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/account", accountRouter);
 app.use("/api/v1/upload", imageRoutes);
+app.use("/api/v1/transaction", transactionRoutes);
+app.use("/api/v1/member", memberRoutes);
 
 // 9. Security Headers Middleware
 app.use((req, res, next) => {

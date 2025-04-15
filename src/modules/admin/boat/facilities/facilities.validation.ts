@@ -7,8 +7,8 @@ export const addFacilityValidation = z.object({
 	}),
 	body: z.object({
 		name: sanitizeString("Name").regex(/^[\w\s-'()]+$/, "Contains invalid characters"),
-		description: z.string().max(2000, "Description must be less than 2000 characters").optional(),
-		icon: z.string().max(100, "Icon must be less than 100 characters").optional(),
+		description: z.string().max(2000, "Description must be less than 2000 characters").optional().nullable(),
+		icon: z.string().max(100, "Icon must be less than 100 characters").optional().nullable(),
 	}),
 });
 
@@ -18,7 +18,7 @@ export const updateFacilityValidation = z.object({
 	}),
 	body: z.object({
 		name: sanitizeString("Name").regex(/^[\w\s-'()]+$/, "Contains invalid characters"),
-		description: z.string().max(2000, "Description must be less than 2000 characters").optional(),
-		icon: z.string().max(100, "Icon must be less than 100 characters").optional(),
+		description: z.string().max(2000, "Description must be less than 2000 characters").optional().nullable(),
+		icon: z.string().max(100, "Icon must be less than 100 characters").optional().nullable(),
 	}),
 });
