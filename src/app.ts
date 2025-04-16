@@ -1,11 +1,11 @@
-// import { URL } from "url";
+import { URL } from "url";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { csrfSync } from "csrf-sync";
 import express, { NextFunction, Request, Response } from "express";
-import rateLimit from "express-rate-limit";
-import session from "express-session";
 import helmet from "helmet";
+import session from "express-session";
+import { createClient } from "redis";
 import { env } from "./configs/env";
 import logger from "./libs/logger";
 import prisma from "./configs/database";
@@ -20,12 +20,34 @@ import { transactionRoutes } from "./modules/transaction/transaction.routes";
 import "./job/updateExchangeRates";
 import "./job/updateCompletedBooking";
 import { memberRoutes } from "./modules/member/member.routes";
-// Mengatasi deprecation warning untuk punycode
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-// (global as any).URL = URL;
-process.throwDeprecation = true;
+import { RedisStore } from "connect-redis";
+
+// 1. Inisialisasi Redis Client
+const redisClient = createClient({
+	url: env.REDIS_URL,
+	socket: {
+		tls: env.NODE_ENV === "production",
+		rejectUnauthorized: false,
+	},
+});
+
+redisClient.on("error", (err) => logger.error(`Redis Client Error: ${err.message}`));
+
+(async () => {
+	await redisClient.connect();
+	logger.info("Connected to Redis successfully");
+})();
+
+// 2. Konfigurasi Redis Store
+const redisStore = new RedisStore({
+	client: redisClient,
+	prefix: "session:",
+	ttl: 604800, // 7 hari dalam detik
+});
+
 const app = express();
-// 1. Enhanced Security Middleware
+
+// 3. Security Middleware
 app.use(
 	helmet({
 		contentSecurityPolicy: {
@@ -36,11 +58,12 @@ app.use(
 				imgSrc: ["'self'", "data:"],
 			},
 		},
+		crossOriginEmbedderPolicy: false,
 	})
 );
 app.disable("x-powered-by");
 
-// 2. Dynamic CORS Configuration
+// 4. CORS Configuration
 const allowedOrigins = env.CORS_ORIGINS.split(",");
 app.use(
 	cors({
@@ -49,7 +72,7 @@ app.use(
 				callback(null, true);
 			} else {
 				logger.warn(`Blocked by CORS: ${origin}`);
-				callback(new Error("Not allowed by CORS"));
+				callback(new ApiError(StatusCodes.FORBIDDEN, "Not allowed by CORS"));
 			}
 		},
 		credentials: true,
@@ -58,70 +81,44 @@ app.use(
 	})
 );
 
-// 3. Rate Limiting with Different Tiers
-// const generalLimiter = rateLimit({
-// 	windowMs: 15 * 60 * 1000,
-// 	max: 100,
-// 	standardHeaders: true, // Tambahkan rate limit headers ke response
-// 	legacyHeaders: false, // Nonaktifkan X-RateLimit-* headers lama
-
-// 	// Custom error handler agar masuk ke middleware errorHandler
-// 	handler: (req: Request, res: Response, next: NextFunction) => {
-// 		const error = new ApiError(StatusCodes.TOO_MANY_REQUESTS, "Too many refresh attempts, please try again later until 15 Minutes");
-// 		next(error);
-// 	},
-// });
-
-// const authLimiter = rateLimit({
-// 	windowMs: 15 * 60 * 1000,
-// 	max: 50,
-// 	standardHeaders: true,
-// 	legacyHeaders: false,
-// });
-
-// app.use(generalLimiter);
-// app.use("/api/v1/auth", authLimiter);
-
-// 4. Secure Session Configuration
+// 5. Session Configuration dengan Redis
 app.use(
 	session({
+		store: redisStore,
 		secret: env.SESSION_KEY,
 		resave: false,
 		saveUninitialized: false,
+		rolling: true,
 		cookie: {
 			secure: env.NODE_ENV === "production",
 			httpOnly: true,
 			sameSite: "strict",
-			maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+			maxAge: 7 * 24 * 60 * 60 * 1000,
+			domain: env.NODE_ENV === "production" ? ".domain.com" : undefined,
 		},
 	})
 );
 
-// 5. Enhanced CSRF Protection
+// 6. CSRF Protection
 const { csrfSynchronisedProtection, generateToken } = csrfSync({
-	getTokenFromRequest: (req) => {
-		// Ambil token dari header
-		const token = req.headers["x-csrf-token"];
-		return Array.isArray(token) ? token[0] : token || "";
-	},
-	size: 64, // Panjang token 64 bytes
+	getTokenFromRequest: (req) => req.headers["x-csrf-token"] as string,
+	size: 64,
 	ignoredMethods: ["GET", "HEAD", "OPTIONS"],
 });
 app.use(csrfSynchronisedProtection);
 
-// 6. Body Parser with Sanitization
+// 7. Body Parser & Cookie Parser
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser(env.COOKIE_SECRET));
 
-// 7. Request Logging Middleware
+// 8. Request Logging
 app.use((req, res, next) => {
-	logger.info(`${req.method} ${req.originalUrl}`);
+	logger.info(`${req.method} ${req.originalUrl} - ${req.ip}`);
 	next();
 });
 
-// 8. Routes
-// app.use("/api/v1/application", applicationRouter);
+// 9. Routes
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/account", accountRouter);
@@ -129,20 +126,24 @@ app.use("/api/v1/upload", imageRoutes);
 app.use("/api/v1/transaction", transactionRoutes);
 app.use("/api/v1/member", memberRoutes);
 
-// 9. Security Headers Middleware
+// 10. Security Headers
 app.use((req, res, next) => {
 	res.setHeader("X-Content-Type-Options", "nosniff");
 	res.setHeader("X-Frame-Options", "DENY");
 	res.setHeader("X-XSS-Protection", "1; mode=block");
+	res.setHeader("Referrer-Policy", "same-origin");
 	next();
 });
 
-// 10. Health Check Endpoint
+// 11. Health Check & CSRF Endpoint
 app.get("/health", (req, res) => {
-	res.json({ status: "OK", timestamp: new Date().toISOString() });
+	res.json({
+		status: "OK",
+		timestamp: new Date().toISOString(),
+		redis: redisClient.isReady ? "connected" : "disconnected",
+	});
 });
 
-// 11. CSRF Token Endpoint
 app.get("/api/v1/csrf-token", (req, res) => {
 	res.json({
 		csrfToken: generateToken(req),
@@ -150,10 +151,10 @@ app.get("/api/v1/csrf-token", (req, res) => {
 	});
 });
 
-// 12. Enhanced Error Handling
+// 12. Error Handling
 app.use(errorHandler);
 
-// 13. Database Connection & Server Startup
+// 13. Database & Server Startup
 prisma
 	.$connect()
 	.then(() => {
@@ -162,10 +163,11 @@ prisma
 			logger.info(`Server running on ${env.BASE_URL}:${env.PORT}`);
 		});
 
-		// Handle shutdown gracefully
-		const shutdown = () => {
-			server.close(async () => {
-				await prisma.$disconnect();
+		const shutdown = async () => {
+			logger.info("Shutting down gracefully...");
+			await prisma.$disconnect();
+			await redisClient.quit();
+			server.close(() => {
 				logger.info("Server closed");
 				process.exit(0);
 			});

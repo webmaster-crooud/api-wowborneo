@@ -19,7 +19,8 @@ jobs:
                   script: |
                       cd /var/www/api-wowborneo
                       git pull origin main
-                      npm ci --omit=dev
+                      npm install
                       npm run build  
+                      npx dotenv -e .env.production -- prisma generate
                       npx dotenv -e .env.production -- prisma migrate deploy
                       pm2 restart ecosystem.config.cjs
