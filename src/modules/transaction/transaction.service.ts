@@ -3,7 +3,7 @@ import prisma from "../../configs/database";
 import { IBookingItineraryResponse, IRepaymentRequest, ITransactionDetailScheduleResponse, ITransactionRequest, ITransactionScheduleResponse } from "../../types/transaction";
 import { ApiError } from "../../libs/apiResponse";
 import { StatusCodes } from "http-status-codes";
-import { getExchangeRate } from "./transaction.controller";
+import { getExchangeRate } from "../../utils/exhangeRates";
 
 export const transactionService = {
 	async list(filters: { search?: string; date?: Date; cruiseId?: string; pax?: number }): Promise<ITransactionScheduleResponse[]> {
@@ -604,15 +604,13 @@ export const transactionService = {
 			},
 		});
 
-		console.log(code);
-		console.log(findBooking);
 		if (!findBooking) throw new ApiError(StatusCodes.NOT_FOUND, "Booking is not found!");
 		if (findBooking.bookingStatus === "DOWNPAYMENT") {
 			if (!findBooking.transactions.length) {
 				throw new ApiError(StatusCodes.NOT_FOUND, "No pending transaction found");
 			}
 			const pendingTransaction = findBooking.transactions[0];
-			console.log(pendingTransaction);
+
 			try {
 				await prisma.$transaction(async (tx) => {
 					const amountPayment = Math.floor(Number(findBooking.amountPayment) + Number(findBooking.balancePayment));

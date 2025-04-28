@@ -1,0 +1,7 @@
+{
+	"compiler": "tsc",
+	"projects": ["."],
+	"outDir": "dist",
+	"extensions": [".js"],
+	"include": ["src/**/*.ts"]
+}

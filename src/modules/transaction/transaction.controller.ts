@@ -10,6 +10,7 @@ import prisma from "../../configs/database";
 import { generateDigest, generateCode, generateSignature } from "../../utils/transaction";
 import { date } from "zod";
 import { log } from "../../utils/logging";
+import { getExchangeRate } from "../../utils/exhangeRates";
 
 async function listScheduleController(req: Request, res: Response) {
 	try {
@@ -47,13 +48,6 @@ async function bookingItineryController(req: Request, res: Response) {
 	} catch (error) {
 		ApiResponse.sendError(res, error as Error);
 	}
-}
-
-export async function getExchangeRate(): Promise<number> {
-	const rate = await prisma.exchangeRate.findFirst({
-		orderBy: { updatedAt: "desc" },
-	});
-	return rate?.rate || 15000; // Default jika belum ada data
 }
 
 async function paymentController(req: Request, res: Response) {
@@ -231,7 +225,7 @@ async function repaymentController(req: Request, res: Response) {
 		});
 
 		const result = await response.json();
-		console.log(result);
+
 		if (result.response.payment.url) {
 			transactionService.repayment(data, bookingId, requestId);
 		} else {

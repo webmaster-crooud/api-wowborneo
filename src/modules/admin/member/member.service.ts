@@ -163,8 +163,6 @@ export const memberService = {
 			},
 		});
 
-		console.log(roleId);
-
 		if ((account?.role.name === "admin" && roleId === 4) || (account?.role.name === "admin" && roleId === 5)) throw new ApiError(StatusCodes.FORBIDDEN, "Oppss... Your account can't access this service");
 
 		if (member?.role.id === roleId) throw new ApiError(StatusCodes.BAD_REQUEST, `${member.user.firstName} has already ${member.role.name}`);

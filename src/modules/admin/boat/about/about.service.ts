@@ -13,7 +13,6 @@ export const aboutService = {
 	},
 
 	async create(boatId: string, body: IAboatRequestBody) {
-		console.log(boatId);
 		const countBoat = await prisma.boat.count({
 			where: {
 				id: boatId,

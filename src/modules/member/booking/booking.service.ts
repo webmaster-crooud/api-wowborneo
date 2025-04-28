@@ -154,8 +154,38 @@ export const bookingService = {
 						type: true,
 					},
 				},
+				refunds: {
+					select: {
+						id: true,
+					},
+					take: 1,
+					orderBy: {
+						updatedAt: "desc",
+					},
+				},
 			},
 		});
+
+		let refund = null;
+		if (booking?.refunds.length !== 0) {
+			refund = await prisma.refund.findFirst({
+				where: {
+					id: booking?.refunds[0].id,
+					bookingId: booking?.id,
+				},
+				select: {
+					id: true,
+					amount: true,
+					amountIDR: true,
+					createdAt: true,
+					price: true,
+					percent: true,
+					status: true,
+					refundMethod: true,
+					updatedAt: true,
+				},
+			});
+		}
 
 		if (!booking) throw new ApiError(StatusCodes.NOT_FOUND, "Booking is not found!");
 
@@ -207,7 +237,74 @@ export const bookingService = {
 			updatedAt: booking.updatedAt,
 			paidAt: booking.paidAt,
 			confirmedAt: booking.confirmedAt,
+			refund: refund || null,
 		};
+
+		return formatedData;
+	},
+
+	async listRefund(accountId: string): Promise<IMemberBookingListResponse[]> {
+		const account = await this.account(accountId);
+
+		const bookingList = await prisma.booking.findMany({
+			where: {
+				email: account?.email,
+				bookingStatus: "CANCELLED",
+			},
+			select: {
+				id: true,
+				cruiseTitle: true,
+				boatName: true,
+				cabinName: true,
+				finalPrice: true,
+				bookingStatus: true,
+				paymentStatus: true,
+				paymentType: true,
+				totalAdult: true,
+				totalChildren: true,
+				schedule: {
+					select: {
+						arrivalAt: true,
+						departureAt: true,
+						cruise: {
+							select: {
+								departure: true,
+							},
+						},
+					},
+				},
+				cabin: {
+					select: {
+						name: true,
+						type: true,
+					},
+				},
+				createdAt: true,
+			},
+			orderBy: {
+				updatedAt: "desc",
+			},
+			take: 10,
+		});
+
+		const formatedData: IMemberBookingListResponse[] = bookingList.map((data) => ({
+			id: data.id,
+			cruiseTitle: data.cruiseTitle,
+			boatName: data.boatName,
+			cabinName: data.cabinName,
+			adults: data.totalAdult,
+			children: data.totalChildren,
+			bookingStatus: data.bookingStatus,
+			finalPrice: data.finalPrice,
+			paymentStatus: data.paymentStatus,
+			paymentType: data.paymentType as string,
+			schedule: {
+				arrivalAt: data.schedule.arrivalAt,
+				departureAt: data.schedule.departureAt,
+				departure: data.schedule.cruise.departure || "",
+			},
+			createdAt: data.createdAt,
+		}));
 		return formatedData;
 	},
 };

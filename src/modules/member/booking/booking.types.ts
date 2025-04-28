@@ -1,5 +1,6 @@
 import { BOOKING_STATUS, GUEST_TYPE, PAYMENT_STATUS } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
+import { IRefundBookingResponse } from "../refund/refund.types";
 export interface IMemberBookingListResponse {
 	id: string;
 	bookingStatus: BOOKING_STATUS;
@@ -66,4 +67,6 @@ export interface IMemberBookingDetailResponse {
 		createdAt: string | Date;
 		updatedAt: string | Date;
 	}>;
+
+	refund?: IRefundBookingResponse | null;
 }

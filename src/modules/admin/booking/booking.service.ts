@@ -17,7 +17,6 @@ const bookingService = {
 	async list(): Promise<IAdminBookingListResponse[]> {
 		const booking = await prisma.booking.findMany({
 			where: {
-				paymentStatus: "SUCCESS",
 				bookingStatus: {
 					notIn: ["CANCELLED", "PENDING"],
 				},

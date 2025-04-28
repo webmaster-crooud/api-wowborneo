@@ -65,6 +65,7 @@ app.disable("x-powered-by");
 
 // 4. CORS Configuration
 const allowedOrigins = env.CORS_ORIGINS.split(",");
+
 app.use(
 	cors({
 		origin: (origin, callback) => {

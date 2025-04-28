@@ -42,7 +42,6 @@ async function checkinController(req: Request, res: Response) {
 	const { accountId } = req.user;
 	const { bookingId } = req.params;
 	try {
-		console.log(bookingId);
 		if (!bookingId) throw new ApiError(StatusCodes.BAD_REQUEST, "Booking Identity is required!");
 		const result = await bookingService.checkin(bookingId);
 

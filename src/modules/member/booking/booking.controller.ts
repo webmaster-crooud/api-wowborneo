@@ -12,6 +12,15 @@ async function listController(req: Request, res: Response) {
 		ApiResponse.sendError(res, error as Error);
 	}
 }
+async function listRefundController(req: Request, res: Response) {
+	try {
+		const { accountId } = req.user;
+		const data = await bookingService.listRefund(accountId);
+		ApiResponse.sendSuccess(res, data, StatusCodes.OK);
+	} catch (error) {
+		ApiResponse.sendError(res, error as Error);
+	}
+}
 async function detailController(req: Request, res: Response) {
 	try {
 		const { accountId } = req.user;
@@ -24,4 +33,4 @@ async function detailController(req: Request, res: Response) {
 	}
 }
 
-export default { listController, detailController };
+export default { listController, detailController, listRefundController };

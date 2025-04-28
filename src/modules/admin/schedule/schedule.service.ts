@@ -466,8 +466,6 @@ export const scheduleService = {
 			const currentAddonIds = currentAddons.map((a) => Number(a.addonId));
 			const newAddonIds = body.addons?.map((a) => Number(a.addonId)) || [];
 
-			console.log(currentAddonIds);
-			console.log(newAddonIds);
 			// Addons to remove
 			const addonsToRemove = currentAddonIds.filter((id) => !newAddonIds.includes(id));
 			if (addonsToRemove.length > 0) {
@@ -490,7 +488,6 @@ export const scheduleService = {
 				});
 			}
 
-			console.log(updatedSchedule);
 			return updatedSchedule;
 		});
 	},
