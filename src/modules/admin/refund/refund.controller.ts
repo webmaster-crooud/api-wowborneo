@@ -30,6 +30,7 @@ async function actionController(req: Request, res: Response) {
 	try {
 		const { id, action } = req.params;
 		await refundService.action(id, action as REFUND_STATUS, accountId);
+		log.updateSuccess(accountId, "Refund");
 		ApiResponse.sendSuccess(res, "OK", StatusCodes.OK);
 	} catch (error) {
 		log.updateFailed(accountId, "Refund");

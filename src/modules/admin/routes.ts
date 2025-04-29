@@ -10,6 +10,7 @@ import { includeRoutes } from "./cruise/include/include.routes";
 import { addonRoutes } from "./addon/addon.routes";
 import { adminBookingRoutes } from "./booking/booking.routes";
 import { refundRoutes } from "./refund/refund.route";
+import { agentRoutes } from "./agent/agent.route";
 
 export const adminRouter = express.Router();
 
@@ -24,3 +25,4 @@ adminRouter.use("/member", memberRoutes);
 adminRouter.use("/addon", addonRoutes);
 adminRouter.use("/booking", adminBookingRoutes);
 adminRouter.use("/refund", refundRoutes);
+adminRouter.use("/agent", agentRoutes);
