@@ -21,6 +21,7 @@ import "./job/updateExchangeRates";
 import "./job/updateCompletedBooking";
 import { memberRoutes } from "./modules/member/member.routes";
 import { RedisStore } from "connect-redis";
+import { homeRoutes } from "./modules/home/routes";
 
 // 1. Inisialisasi Redis Client
 const redisClient = createClient({
@@ -126,6 +127,7 @@ app.use("/api/v1/account", accountRouter);
 app.use("/api/v1/upload", imageRoutes);
 app.use("/api/v1/transaction", transactionRoutes);
 app.use("/api/v1/member", memberRoutes);
+app.use("/api/v1/home", homeRoutes);
 
 // 10. Security Headers
 app.use((req, res, next) => {

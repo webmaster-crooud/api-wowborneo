@@ -68,4 +68,22 @@ export const agentService = {
 	async list(): Promise<IAgentResponse[]> {
 		return await prisma.agent.findMany();
 	},
+
+	async delete(accountId: string) {
+		await prisma.$transaction(async (tx) => {
+			await tx.account.update({
+				where: {
+					id: accountId,
+				},
+				data: {
+					roleId: 1,
+				},
+			});
+			await tx.agent.delete({
+				where: {
+					accountId: accountId,
+				},
+			});
+		});
+	},
 };

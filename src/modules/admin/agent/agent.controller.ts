@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ApiResponse } from "../../../libs/apiResponse";
+import { ApiError, ApiResponse } from "../../../libs/apiResponse";
 import { log } from "../../../utils/logging";
 import { agentService } from "./agent.service";
 import { StatusCodes } from "http-status-codes";
@@ -40,4 +40,17 @@ async function listController(req: Request, res: Response) {
 	}
 }
 
-export default { createController, listController, updateController };
+async function deleteController(req: Request, res: Response) {
+	const { accountId } = req.params;
+	try {
+		if (!accountId) throw new ApiError(StatusCodes.BAD_REQUEST, "Account identity is required");
+		const data = await agentService.delete(accountId);
+		log.deleteSuccess(accountId, "Agent");
+		ApiResponse.sendSuccess(res, data, StatusCodes.CREATED);
+	} catch (error) {
+		log.deleteFailed(accountId, "Agent");
+		ApiResponse.sendError(res, error as Error);
+	}
+}
+
+export default { createController, listController, updateController, deleteController };
