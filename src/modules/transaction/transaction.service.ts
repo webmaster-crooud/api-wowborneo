@@ -1,186 +1,105 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, TYPECABIN } from "@prisma/client";
 import prisma from "../../configs/database";
 import { IBookingItineraryResponse, IRepaymentRequest, ITransactionDetailScheduleResponse, ITransactionRequest, ITransactionScheduleResponse } from "../../types/transaction";
 import { ApiError } from "../../libs/apiResponse";
 import { StatusCodes } from "http-status-codes";
 import { getExchangeRate } from "../../utils/exhangeRates";
+import { ICartResponse } from "../cart/cart.type";
+import { redisClient } from "../../configs/redis";
 
 export const transactionService = {
-	async list(filters: { search?: string; date?: Date; cruiseId?: string; pax?: number }): Promise<ITransactionScheduleResponse[]> {
-		const whereClause: Prisma.ScheduleWhereInput = {
-			AND: [
-				{ id: { contains: filters.search || undefined } },
-				filters.date
-					? {
-							departureAt: { lte: filters.date },
-							arrivalAt: { gte: filters.date },
-						}
-					: {},
-				filters.cruiseId ? { cruiseId: filters.cruiseId } : {},
-				{
-					boat: { status: { notIn: ["DELETED", "PENDING"] } },
-					cruise: { status: { notIn: ["DELETED", "PENDING"] } },
-					// Tambahkan filter status untuk mengecualikan DELETED dan PENDING
-					status: {
-						notIn: ["DELETED", "PENDING"], // <-- MODIFIKASI DI SINI
-					},
-				},
-			],
-		};
+	// List Schedule
+	async list({ cruiseId, month, pax }: { cruiseId?: string; month?: string | Date; pax?: number }): Promise<ITransactionScheduleResponse[]> {
+		const now = new Date();
+		let year: number | undefined;
+		let mon: number | undefined;
+		if (month) {
+			const m = typeof month === "string" ? new Date(month + "-01") : new Date(month);
+			year = m.getFullYear();
+			mon = m.getMonth() + 1;
+		}
+		return await prisma.$queryRaw`SELECT s.id, s.departure_at AS departureAt, s.arrival_at AS arrivalAt, s.duration_day AS duration, s.status, c.title as cruiseTitle, c.departure, b.name as boatName, cover.source as cover, MIN(cab.price) AS minPrice, SUM(cab.max_capacity) as maxCapacity
+					FROM schedules s 
+					JOIN (SELECT title, departure, id FROM river_cruise as c) c ON c.id = s.cruise_id
+					JOIN (SELECT id, name FROM boats as b) b ON b.id = s.boat_id
+					LEFT JOIN (
+								SELECT source, entity_id FROM images AS cover
+								WHERE entity_type = "CRUISE" AND image_type = "COVER"
+							) cover ON cover.entity_id = s.cruise_id
+					LEFT JOIN (SELECT boat_id, price, max_capacity FROM cabins as cab) cab ON cab.boat_id = b.id
+					WHERE s.departure_at >= ${now}
+					AND s.status NOT IN ('PENDING', 'DELETED')
+					${cruiseId ? Prisma.sql`AND s.cruise_id = ${cruiseId}` : Prisma.empty}
+					${
+						year && mon
+							? Prisma.sql`
+								AND YEAR(s.departure_at)  = ${year}
+								AND MONTH(s.departure_at) = ${mon}
+							`
+							: Prisma.empty
+					}
+					GROUP BY
+						s.id,
+						cover.source
+					${pax ? Prisma.sql`HAVING SUM(cab.max_capacity) >= ${pax}` : Prisma.empty}
+					ORDER BY s.updated_at DESC
+					LIMIT 10
+		`;
+	},
 
-		const schedules = await prisma.schedule.findMany({
-			where: whereClause,
-			include: {
-				boat: {
-					select: {
-						name: true,
-						cabins: {
-							select: {
-								id: true,
-								maxCapacity: true,
-								price: true,
-							},
-						},
-					},
-				},
-				cruise: {
-					select: {
-						id: true,
-						title: true,
-						departure: true,
-						duration: true,
-					},
-				},
-			},
-			orderBy: { createdAt: "desc" },
-			take: 10,
-		});
-
-		// 2. Ambil semua ID cabin dan schedule untuk query booking
-		const cabinIds = schedules.flatMap((s) => s.boat.cabins.map((c) => c.id));
-		const scheduleIds = schedules.map((s) => s.id);
-
-		// 2. Ambil semua ID cruise untuk query gambar
-		const cruiseIds = schedules.map((s) => s.cruise.id);
-
-		// 3. Ambil semua cover cruise sekaligus
-		const cruiseCovers = await prisma.image.findMany({
+	// List Cruise
+	async listCruise(): Promise<{ id: string; title: string }[]> {
+		return await prisma.cruise.findMany({
 			where: {
-				entityId: { in: cruiseIds },
-				entityType: "CRUISE",
-				imageType: "COVER",
+				status: {
+					notIn: ["DELETED", "BLOCKED", "PENDING"],
+				},
 			},
 			select: {
-				entityId: true,
-				source: true,
+				id: true,
+				title: true,
 			},
 		});
-		// 3. Hitung booking yang sukses per cabin dan schedule
-		const bookings = await prisma.booking.groupBy({
-			by: ["scheduleId", "cabinId"],
-			where: {
-				scheduleId: { in: scheduleIds },
-				cabinId: { in: cabinIds },
-				paymentStatus: "SUCCESS",
-			},
-			_count: true,
-		});
-
-		// 4. Buat mapping untuk akses cepat
-		const bookingCountMap = new Map();
-		bookings.forEach((b) => {
-			const key = `${b.scheduleId}-${b.cabinId}`;
-			bookingCountMap.set(key, b._count);
-		});
-
-		// 4. Buat mapping ID cruise -> cover
-		const coverMap = new Map(cruiseCovers.map((cover) => [cover.entityId, cover.source]));
-
-		// 5. Format data response
-		const formattedData: ITransactionScheduleResponse[] = schedules.map((item) => {
-			// Hitung total kapasitas dan booking
-			const totalCapacity = item.boat.cabins.reduce((sum, cabin) => sum + Number(cabin.maxCapacity), 0);
-
-			const totalBooked = item.boat.cabins.reduce((sum, cabin) => {
-				const key = `${item.id}-${cabin.id}`;
-				return sum + (bookingCountMap.get(key) || 0);
-			}, 0);
-
-			// Cari harga termurah
-			const minPrice = Math.min(...item.boat.cabins.map((cabin) => Number(cabin.price)));
-
-			return {
-				id: item.id,
-				departureAt: item.departureAt,
-				arrivalAt: item.arrivalAt,
-				boatTitle: item.boat.name,
-				cruiseTitle: item.cruise.title,
-				departure: item.cruise.departure || "",
-				status: item.status,
-				min_price: minPrice,
-				availableCabin: totalCapacity - totalBooked,
-				bookedCabin: totalBooked,
-				duration: Number(item.cruise.duration),
-				cover: coverMap.get(item.cruise.id) || null, // Tambahkan cover dari mapping
-			};
-		});
-
-		// Filter berdasarkan PAX
-		let filteredData = formattedData;
-		if (filters.pax) {
-			filteredData = formattedData.filter((schedule) => schedule.availableCabin >= (filters.pax || 0));
-		}
-
-		return filteredData;
 	},
+
 	async find(scheduleId: string): Promise<ITransactionDetailScheduleResponse> {
 		const countSchedule = await prisma.schedule.count({
 			where: { id: scheduleId },
 		});
 		if (countSchedule === 0) throw new ApiError(StatusCodes.NOT_FOUND, "Schedule is not found!");
 
+		// Hitung dulu jumlah booking
+		const countBooking = await prisma.booking.count({
+			where: { scheduleId },
+		});
+
+		// Siapkan filter untuk cabins
+		const cabinsFilter =
+			countBooking === 0
+				? { type: "SUPER" as TYPECABIN } // jika belum ada booking → hanya tipe SUPER
+				: { bookings: { none: { scheduleId } } }; // jika sudah ada booking → yang belum dipesan
+
+		// Kemudian panggil Prisma dengan filter dinamis
 		const result = await prisma.schedule.findFirst({
-			where: {
-				id: scheduleId,
-			},
+			where: { id: scheduleId },
 			select: {
 				id: true,
 				status: true,
 				arrivalAt: true,
 				departureAt: true,
 				cruise: {
-					select: {
-						title: true,
-						id: true,
-						departure: true,
-						description: true,
-						duration: true,
-					},
+					select: { title: true, id: true, departure: true, description: true, duration: true },
 				},
 				boat: {
 					select: {
 						id: true,
 						name: true,
-						deck: {
-							select: {
-								id: true,
-							},
-						},
+						deck: { select: { id: true } },
 						facilities: {
-							select: {
-								name: true,
-								icon: true,
-								description: true,
-							},
+							select: { name: true, icon: true, description: true },
 						},
 						cabins: {
-							where: {
-								bookings: {
-									none: {
-										scheduleId: scheduleId,
-									},
-								},
-							},
+							where: cabinsFilter, // ← filter di‐sini
 							select: {
 								id: true,
 								name: true,
@@ -189,9 +108,7 @@ export const transactionService = {
 								type: true,
 								description: true,
 							},
-							orderBy: {
-								price: "desc",
-							},
+							orderBy: { price: "desc" },
 						},
 					},
 				},
@@ -238,12 +155,8 @@ export const transactionService = {
 				imageType: "COVER",
 			},
 			select: {
-				id: true,
 				entityId: true,
-				entityType: true,
-				imageType: true,
 				source: true,
-				alt: true,
 			},
 		});
 		// Tambahkan cover ke setiap destination
@@ -261,6 +174,7 @@ export const transactionService = {
 		});
 		return {
 			id: result?.id || "",
+			totalBooking: countBooking,
 			status: result?.status || "PENDING",
 			arrivalAt: result?.arrivalAt || "",
 			departureAt: result?.departureAt || "",
@@ -399,7 +313,7 @@ export const transactionService = {
 			})),
 		};
 	},
-	async countAdultsAndChildren(transaction: ITransactionRequest) {
+	async countAdultsAndChildren(transaction: ICartResponse) {
 		// Pastikan guests tersedia (tidak undefined atau null)
 		const guests = transaction.guests || [];
 
@@ -409,7 +323,7 @@ export const transactionService = {
 
 		return { adults, children };
 	},
-	async transaction(body: ITransactionRequest, code: string) {
+	async transaction(body: ICartResponse, code: string) {
 		const cabin = await prisma.cabin.findUnique({
 			where: {
 				id: Number(body.cabinId),
@@ -439,13 +353,13 @@ export const transactionService = {
 
 					taxRate: 0,
 					taxAmount: 0,
-					amountPayment: body.amountPayment,
+					amountPayment: body.amountPayment || "",
 					amountPaymentIDR: Math.floor(Number(body.amountPayment) * exchangeRateConcurrency),
 					balancePayment: body.amountUnderPayment,
 					balancePaymentIDR: Math.floor(Number(body.amountUnderPayment) * exchangeRateConcurrency),
-					subTotalPrice: body.subTotal,
+					subTotalPrice: body.subTotal || "",
 					discount: 0,
-					finalPrice: body.finalTotal,
+					finalPrice: body.finalTotal || "",
 
 					bookingStatus: "PENDING",
 					paymentStatus: "PENDING",
@@ -472,7 +386,7 @@ export const transactionService = {
 			await tx.transaction.create({
 				data: {
 					bookingId: booking.id,
-					amount: body.amountPayment,
+					amount: body.amountPayment || "",
 					amountIDR: Number(body.amountPayment) * exchangeRateConcurrency,
 					email: body.email || booking.account.email,
 					paymentMethod: booking.paymentMethod || body.method || "full",
@@ -484,7 +398,7 @@ export const transactionService = {
 			});
 
 			await Promise.all(
-				body.addons.map((addon) =>
+				body.addons?.map((addon) =>
 					tx.bookingAddon.create({
 						data: {
 							bookingId: booking.id,
@@ -495,11 +409,11 @@ export const transactionService = {
 							updatedAt: new Date(),
 						},
 					})
-				)
+				) || []
 			);
 
 			await Promise.all(
-				body.guests.map(async (guest) => {
+				body.guests?.map(async (guest) => {
 					try {
 						// Upsert guest dengan update data
 						const upsertedGuest = await tx.guest.upsert({
@@ -542,7 +456,7 @@ export const transactionService = {
 							throw new ApiError(400, message);
 						}
 					}
-				})
+				}) || []
 			);
 		});
 	},
@@ -596,6 +510,12 @@ export const transactionService = {
 				amountPaymentIDR: true,
 				balancePayment: true,
 				balancePaymentIDR: true,
+				account: {
+					select: {
+						id: true,
+					},
+				},
+				scheduleId: true,
 				transactions: {
 					where: { status: "PENDING" },
 					orderBy: { createdAt: "desc" },
@@ -605,6 +525,9 @@ export const transactionService = {
 		});
 
 		if (!findBooking) throw new ApiError(StatusCodes.NOT_FOUND, "Booking is not found!");
+		const key = `transaction:${findBooking.scheduleId}:${findBooking.account.id}`;
+		await redisClient.del(key);
+
 		if (findBooking.bookingStatus === "DOWNPAYMENT") {
 			if (!findBooking.transactions.length) {
 				throw new ApiError(StatusCodes.NOT_FOUND, "No pending transaction found");

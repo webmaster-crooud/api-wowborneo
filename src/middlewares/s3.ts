@@ -24,7 +24,7 @@ export const S3 = multer({
 		if (file.mimetype.startsWith("image/")) {
 			cb(null, true);
 		} else {
-			cb(new Error("Hanya file gambar yang diperbolehkan") as any, false);
+			cb(new Error("Just only image you can uploaded") as any, false);
 		}
 	},
 });

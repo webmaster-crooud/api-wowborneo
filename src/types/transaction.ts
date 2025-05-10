@@ -4,14 +4,13 @@ export interface ITransactionScheduleResponse {
 	departureAt: string | Date;
 	arrivalAt: string | Date;
 	cruiseTitle: string;
-	boatTitle: string;
+	boatName: string;
 	departure: string;
 	status: STATUS; // Bisa diganti dengan enum jika sudah ada
-	min_price: number;
-	availableCabin: number;
-	bookedCabin: number;
+	minPrice: number;
 	cover: string | null; // Path cover image
 	duration: number;
+	maxCapcity: number;
 }
 
 export interface ITransactionDetailScheduleResponse {
@@ -19,6 +18,7 @@ export interface ITransactionDetailScheduleResponse {
 	departureAt: string | Date;
 	arrivalAt: string | Date;
 	status: STATUS;
+	totalBooking: number;
 	cruise: {
 		id: string;
 		title: string;

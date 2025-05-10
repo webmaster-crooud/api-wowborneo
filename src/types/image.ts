@@ -4,6 +4,7 @@ export interface IImage {
 	alt: string | null;
 	entityId: string;
 	entityType: string;
+	source: string;
 }
 
 export interface ICover {

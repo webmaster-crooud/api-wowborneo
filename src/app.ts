@@ -22,16 +22,10 @@ import "./job/updateCompletedBooking";
 import { memberRoutes } from "./modules/member/member.routes";
 import { RedisStore } from "connect-redis";
 import { homeRoutes } from "./modules/home/routes";
+import { redisClient } from "./configs/redis";
+import { cartRoutes } from "./modules/cart/cart.route";
 
 // 1. Inisialisasi Redis Client
-const redisClient = createClient({
-	url: env.REDIS_URL,
-	socket: {
-		tls: env.NODE_ENV === "production",
-		rejectUnauthorized: false,
-	},
-});
-
 redisClient.on("error", (err) => logger.error(`Redis Client Error: ${err.message}`));
 
 (async () => {
@@ -43,7 +37,7 @@ redisClient.on("error", (err) => logger.error(`Redis Client Error: ${err.message
 const redisStore = new RedisStore({
 	client: redisClient,
 	prefix: "session:",
-	ttl: 604800, // 7 hari dalam detik
+	ttl: 86340, // 7 hari dalam detik
 });
 
 const app = express();
@@ -95,7 +89,7 @@ app.use(
 			secure: env.NODE_ENV === "production",
 			httpOnly: true,
 			sameSite: "strict",
-			maxAge: 7 * 24 * 60 * 60 * 1000,
+			maxAge: 1 * 24 * 60 * 60 * 1000,
 			domain: env.NODE_ENV === "production" ? ".domain.com" : undefined,
 		},
 	})
@@ -126,6 +120,7 @@ app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/account", accountRouter);
 app.use("/api/v1/upload", imageRoutes);
 app.use("/api/v1/transaction", transactionRoutes);
+app.use("/api/v1/cart", cartRoutes);
 app.use("/api/v1/member", memberRoutes);
 app.use("/api/v1/home", homeRoutes);
 

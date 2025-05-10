@@ -2,28 +2,48 @@ import { Request, Response } from "express";
 import { transactionService } from "./transaction.service";
 import { ApiError, ApiResponse } from "../../libs/apiResponse";
 import { StatusCodes } from "http-status-codes";
-import { IRepaymentRequest, ITransactionRequest } from "../../types/transaction";
-import crypto from "crypto";
+import { IAddonRequest, IRepaymentRequest, ITransactionRequest } from "../../types/transaction";
 import { env } from "../../configs/env";
 import { v4 as uuid } from "uuid";
 import prisma from "../../configs/database";
 import { generateDigest, generateCode, generateSignature } from "../../utils/transaction";
-import { date } from "zod";
 import { log } from "../../utils/logging";
 import { getExchangeRate } from "../../utils/exhangeRates";
+import { redisClient } from "../../configs/redis";
+import { ICartResponse } from "../cart/cart.type";
 
-async function listScheduleController(req: Request, res: Response) {
+// async function listScheduleController(req: Request, res: Response) {
+// 	try {
+// 		const { search, date, cruiseId, pax } = req.query;
+
+// 		const result = await transactionService.list({
+// 			search: String(search || ""),
+// 			date: date ? new Date(String(date)) : undefined,
+// 			cruiseId: String(cruiseId || ""),
+// 			pax: Number(pax) || undefined,
+// 		});
+
+// 		ApiResponse.sendSuccess(res, result, StatusCodes.OK);
+// 	} catch (error) {
+// 		ApiResponse.sendError(res, error as Error);
+// 	}
+// }
+
+async function listController(req: Request, res: Response) {
 	try {
-		const { search, date, cruiseId, pax } = req.query;
+		const { cruiseId, month, pax } = req.query;
+		console.log(month);
+		const data = await transactionService.list({ cruiseId: cruiseId?.toString(), month: month?.toString(), pax: pax ? Number(pax.toString()) : 1 });
+		ApiResponse.sendSuccess(res, data, StatusCodes.OK);
+	} catch (error) {
+		ApiResponse.sendError(res, error as Error);
+	}
+}
 
-		const result = await transactionService.list({
-			search: String(search || ""),
-			date: date ? new Date(String(date)) : undefined,
-			cruiseId: String(cruiseId || ""),
-			pax: Number(pax) || undefined,
-		});
-
-		ApiResponse.sendSuccess(res, result, StatusCodes.OK);
+async function listCruiseController(req: Request, res: Response) {
+	try {
+		const data = await transactionService.listCruise();
+		ApiResponse.sendSuccess(res, data, StatusCodes.OK);
 	} catch (error) {
 		ApiResponse.sendError(res, error as Error);
 	}
@@ -39,6 +59,7 @@ async function findController(req: Request, res: Response) {
 		ApiResponse.sendError(res, error as Error);
 	}
 }
+
 async function bookingItineryController(req: Request, res: Response) {
 	try {
 		const { scheduleId, cabinId } = req.params;
@@ -53,7 +74,14 @@ async function bookingItineryController(req: Request, res: Response) {
 async function paymentController(req: Request, res: Response) {
 	const { accountId, firstName, lastName, email } = req.user;
 	try {
-		const data = req.body as ITransactionRequest;
+		const { scheduleId } = req.params;
+		const key = `transaction:${scheduleId}:${accountId}`;
+		const tx = await redisClient.get(key);
+		if (!tx) {
+			await redisClient.del(key);
+			throw new ApiError(StatusCodes.NOT_FOUND, "Transaction proceess is failed");
+		}
+		const data: ICartResponse = JSON.parse(tx);
 		const code = generateCode(data.scheduleId);
 		const requestId = uuid();
 		const clientId = env.DOKU_CLIENT_ID!;
@@ -79,12 +107,14 @@ async function paymentController(req: Request, res: Response) {
 									type: "Addons",
 								}))
 							: []), // Jika kosong, gunakan array kosong (tidak memengaruhi items)
-						...data.guests.map((guest) => ({
-							name: `${guest.firstName} ${guest.lastName}: ${guest.identityNumber} - ${data.cruise.title}`,
-							quantity: 1,
-							price: Math.floor(Number(guest.price) * exchangeRate),
-							type: guest.children ? "Children" : "Adult",
-						})),
+						...(data.guests?.length > 0
+							? data.guests.map((guest) => ({
+									name: `${guest.firstName} ${guest.lastName}: ${guest.identityNumber} - ${data.cruise.title}`,
+									quantity: 1,
+									price: Math.floor(Number(guest.price) * exchangeRate),
+									type: guest.children ? "Children" : "Adult",
+								}))
+							: []),
 					]
 				: [
 						{
@@ -281,6 +311,7 @@ export async function handleResultRedirect(req: Request, res: Response) {
 	try {
 		const { code } = req.query;
 
+		console.log(code);
 		transactionService.successPayment(String(code));
 		// ApiResponse.sendSuccess(res, "OK", StatusCodes.CREATED);
 		res.redirect(`${env.TRANSACTION_URL}`);
@@ -289,47 +320,4 @@ export async function handleResultRedirect(req: Request, res: Response) {
 		res.redirect(`${env.TRANSACTION_URL}`);
 	}
 }
-
-// // Validasi signature DOKU
-// function validateDokuSignature(req: Request): boolean {
-// 	// DOKU menggunakan query string untuk GET callback
-// 	const queryParams = new URLSearchParams(req.query as any).toString();
-
-// 	console.log(queryParams);
-// 	const hmac = crypto.createHmac("sha256", env.DOKU_SECRET_KEY!);
-// 	hmac.update(queryParams);
-
-// 	const calculatedSignature = hmac.digest("base64");
-// 	const dokuSignature = req.headers["x-doku-signature"] || req.query.signature;
-
-// 	return dokuSignature === calculatedSignature;
-// }
-
-// async function getDokuTransactionStatus(code: string): Promise<string> {
-// 	const requestId = uuid();
-// 	const clientId = env.DOKU_CLIENT_ID!;
-// 	const requestTimestamp = new Date().toISOString().split(".")[0] + "Z";
-// 	const endpointPath = `/checkout/v1/status/${code}`;
-
-// 	// Generate signature untuk API check
-// 	const componentSignature = `Client-Id:${clientId!}\n` + `Request-Id:${requestId}\n` + `Request-Timestamp:${requestTimestamp}\n` + `Request-Target:${endpointPath}`;
-
-// 	console.log(componentSignature);
-// 	const hmac = crypto.createHmac("sha256", process.env.DOKU_SECRET_KEY!);
-// 	hmac.update(componentSignature);
-// 	const signature = `HMACSHA256=${hmac.digest("base64")}`;
-
-// 	const response = await fetch(`https://api-sandbox.doku.com${endpointPath}`, {
-// 		method: "GET",
-// 		headers: {
-// 			"Client-Id": clientId,
-// 			"Request-Id": requestId,
-// 			"Request-Timestamp": requestTimestamp,
-// 			Signature: signature,
-// 		},
-// 	});
-
-// 	const data = await response.json();
-// 	return data;
-// }
-export default { listScheduleController, findController, repaymentController, bookingItineryController, paymentController, handleDokuCallback, handleResultRedirect };
+export default { listController, listCruiseController, findController, repaymentController, bookingItineryController, paymentController, handleDokuCallback, handleResultRedirect };
