@@ -32,6 +32,6 @@ authRoutes.patch("/change-password", validate(changePassword), rateLimiter, auth
 
 // Auth Login
 authRoutes.post("/", validate(loginValidation), rateLimiter, authController.loginController);
-authRoutes.patch("/", rateLimiter, authController.refreshTokenController);
+authRoutes.patch("/", authController.refreshTokenController);
 authRoutes.get("/", authMiddleware, authController.getAccountController);
 authRoutes.delete("/", authMiddleware, authController.logoutController);
