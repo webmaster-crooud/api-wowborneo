@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 import { cleanEnv, port, str, url } from "envalid";
 
-config({ path: process.env.NODE_ENV === "production" ? ".env" : `.env.${process.env.NODE_ENV || "development"}` });
+config({ path: `.env.${process.env.NODE_ENV || "development"}` });
 export const env = cleanEnv(process.env, {
 	NODE_ENV: str({ choices: ["development", "production"] }),
 	DATABASE_URL: str(),
