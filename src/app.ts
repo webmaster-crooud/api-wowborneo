@@ -29,7 +29,6 @@ import { cartRoutes } from "./modules/cart/cart.route";
 redisClient.on("error", (err) => logger.error(`Redis Client Error: ${err.message}`));
 
 (async () => {
-	console.log(env.REDIS_URL);
 	await redisClient.connect();
 	logger.info("Connected to Redis successfully");
 })();
