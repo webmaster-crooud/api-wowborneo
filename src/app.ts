@@ -60,7 +60,6 @@ app.disable("x-powered-by");
 
 // 4. CORS Configuration
 const allowedOrigins = env.CORS_ORIGINS.split(",");
-
 app.use(
 	cors({
 		origin: (origin, callback) => {
@@ -77,6 +76,18 @@ app.use(
 	})
 );
 
+// 6. CSRF Protection
+const { csrfSynchronisedProtection, generateToken } = csrfSync({
+	getTokenFromRequest: (req) => req.headers["x-csrf-token"] as string,
+	size: 64,
+	ignoredMethods: ["GET", "HEAD", "OPTIONS"],
+});
+
+// 7. Body Parser & Cookie Parser
+app.use(cookieParser(env.COOKIE_SECRET));
+app.use(express.json({ limit: "10kb" }));
+app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+
 // 5. Session Configuration dengan Redis
 app.use(
 	session({
@@ -88,26 +99,15 @@ app.use(
 		cookie: {
 			secure: env.NODE_ENV === "production",
 			httpOnly: true,
-			sameSite: "strict",
-			maxAge: 1 * 24 * 60 * 60 * 1000,
-			domain: env.NODE_ENV === "production" ? ".domain.com" : undefined,
+			domain: env.NODE_ENV === "production" ? env.DOMAIN_URL : undefined,
+			sameSite: "none", // cross-site cookies but secure
+			maxAge: 24 * 60 * 60 * 1000,
 		},
 	})
 );
 
-// 6. CSRF Protection
-const { csrfSynchronisedProtection, generateToken } = csrfSync({
-	getTokenFromRequest: (req) => req.headers["x-csrf-token"] as string,
-	size: 64,
-	ignoredMethods: ["GET", "HEAD", "OPTIONS"],
-});
 app.use(csrfSynchronisedProtection);
-
-// 7. Body Parser & Cookie Parser
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-app.use(cookieParser(env.COOKIE_SECRET));
-
+env.NODE_ENV === "production" && app.set("trust proxy", 1);
 // 8. Request Logging
 app.use((req, res, next) => {
 	logger.info(`${req.method} ${req.originalUrl} - ${req.ip}`);

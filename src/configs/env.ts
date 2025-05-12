@@ -13,6 +13,7 @@ export const env = cleanEnv(process.env, {
 	BCRYPT_ROUND: str(),
 	SESSION_KEY: str(),
 
+	DOMAIN_URL: str({ default: ".vercel.app" }),
 	HOME_URL: str(),
 	AUTH_URL: str(),
 	TRANSACTION_URL: str(),
