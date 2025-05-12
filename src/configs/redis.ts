@@ -11,9 +11,13 @@ export const redisClient = new Redis({
 	// Konfigurasi TLS khusus production
 	...(env.NODE_ENV === "production" && {
 		tls: {
-			ca: fs.readFileSync("/etc/redis-certs/chain.pem"),
+			// ca: [
+			// 	fs.readFileSync("/etc/redis-certs/fullchain.pem"), // Gunakan fullchain (server + intermediate)
+			// 	fs.readFileSync("/etc/ssl/certs/ISRG_Root_X1.pem"), // Tambahkan root CA
+			// ],
 			servername: "api.prooyek.com",
-			rejectUnauthorized: true,
+			rejectUnauthorized: false,
+			// checkServerIdentity: () => undefined, // Skip hostname verification
 		},
 	}),
 
