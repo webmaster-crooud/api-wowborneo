@@ -30,6 +30,7 @@ redisClient.on("error", (err) => logger.error(`Redis Client Error: ${err.message
 
 (async () => {
 	await redisClient.connect();
+	console.log(env.REDIS_URL);
 	logger.info("Connected to Redis successfully");
 })();
 
