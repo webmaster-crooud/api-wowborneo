@@ -99,7 +99,7 @@ app.use(
 		cookie: {
 			secure: env.NODE_ENV === "production",
 			httpOnly: true,
-			domain: env.NODE_ENV === "production" ? env.DOMAIN_URL : undefined,
+			// domain: env.NODE_ENV === "production" ? env.DOMAIN_URL : undefined,
 			sameSite: "none", // cross-site cookies but secure
 			maxAge: 24 * 60 * 60 * 1000,
 		},
