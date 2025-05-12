@@ -19,16 +19,16 @@ export const redisClient = new Redis({
 
 	// Opsi optimisasi koneksi
 	connectTimeout: 5000,
-	retryStrategy: (times) => Math.min(times * 100, 3000),
+	retryStrategy: (times: number) => Math.min(times * 100, 3000),
 	reconnectOnError: (err) => {
-		console.error("Redis connection error:", err.message);
+		console.error("Redis connection error:", (err as Error).message);
 		return true; // Auto-reconnect
 	},
 });
 
 // Event handler untuk monitoring
 redisClient.on("ready", () => console.log("Redis connected"));
-redisClient.on("error", (err) => console.error("Redis error:", err));
+redisClient.on("error", (err) => console.error("Redis error:", err as Error));
 
 // Fungsi test koneksi
 export async function testRedisConnection() {
@@ -37,7 +37,7 @@ export async function testRedisConnection() {
 		console.log("Redis ping response:", pong); // Harusnya "PONG"
 		return true;
 	} catch (err) {
-		console.error("Redis connection test failed:", err);
+		console.error("Redis connection test failed:", err as Error);
 		return false;
 	}
 }

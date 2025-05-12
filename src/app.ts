@@ -25,7 +25,7 @@ import { redisClient } from "./configs/redis";
 import { cartRoutes } from "./modules/cart/cart.route";
 
 // 1. Inisialisasi Redis Client
-redisClient.on("error", (err) => logger.error(`Redis Client Error: ${err.message}`));
+redisClient.on("error", (err) => logger.error(`Redis Client Error: ${(err as Error).message}`));
 async function testRedis() {
 	try {
 		await redisClient.ping();
