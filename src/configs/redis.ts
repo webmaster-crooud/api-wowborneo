@@ -1,13 +1,43 @@
-import { createClient } from "redis";
+import Redis from "ioredis";
 import { env } from "./env";
+import fs from "fs";
 
-export const redisClient = createClient({
-	url: env.REDIS_URL,
-	socket: {
-		tls: env.NODE_ENV === "production",
-		rejectUnauthorized: env.NODE_ENV === "production",
-		servername: env.NODE_ENV === "production" ? "api.prooyek.com" : "localhost",
-		ca: "",
-	},
+export const redisClient = new Redis({
+	// Konfigurasi dasar
+	host: env.NODE_ENV === "production" ? "api.prooyek.com" : "localhost",
+	port: 6379,
 	password: env.NODE_ENV === "production" ? env.REDIS_PASSWORD : "",
+
+	// Konfigurasi TLS khusus production
+	...(env.NODE_ENV === "production" && {
+		tls: {
+			ca: fs.readFileSync("/etc/letsencrypt/live/api.prooyek.com/chain.pem"),
+			servername: "api.prooyek.com",
+			rejectUnauthorized: true,
+		},
+	}),
+
+	// Opsi optimisasi koneksi
+	connectTimeout: 5000,
+	retryStrategy: (times) => Math.min(times * 100, 3000),
+	reconnectOnError: (err) => {
+		console.error("Redis connection error:", err.message);
+		return true; // Auto-reconnect
+	},
 });
+
+// Event handler untuk monitoring
+redisClient.on("ready", () => console.log("Redis connected"));
+redisClient.on("error", (err) => console.error("Redis error:", err));
+
+// Fungsi test koneksi
+export async function testRedisConnection() {
+	try {
+		const pong = await redisClient.ping();
+		console.log("Redis ping response:", pong); // Harusnya "PONG"
+		return true;
+	} catch (err) {
+		console.error("Redis connection test failed:", err);
+		return false;
+	}
+}

@@ -2,10 +2,9 @@ import { URL } from "url";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { csrfSync } from "csrf-sync";
-import express, { NextFunction, Request, Response } from "express";
+import express from "express";
 import helmet from "helmet";
 import session from "express-session";
-import { createClient } from "redis";
 import { env } from "./configs/env";
 import logger from "./libs/logger";
 import prisma from "./configs/database";
@@ -35,11 +34,12 @@ async function testRedis() {
 		console.error("Redis Ping Failed:", err);
 	}
 }
+
 testRedis();
-(async () => {
-	await redisClient.connect();
-	logger.info("Connected to Redis successfully");
-})();
+// (async () => {
+// 	await redisClient.connect();
+// 	logger.info("Connected to Redis successfully");
+// })();
 
 // 2. Konfigurasi Redis Store
 const redisStore = new RedisStore({
@@ -148,7 +148,7 @@ app.get("/health", (req, res) => {
 	res.json({
 		status: "OK",
 		timestamp: new Date().toISOString(),
-		redis: redisClient.isReady ? "connected" : "disconnected",
+		redis: redisClient ? "connected" : "disconnected",
 	});
 });
 
@@ -173,12 +173,18 @@ prisma
 
 		const shutdown = async () => {
 			logger.info("Shutting down gracefully...");
-			await prisma.$disconnect();
-			await redisClient.quit();
-			server.close(() => {
-				logger.info("Server closed");
-				process.exit(0);
-			});
+
+			try {
+				await Promise.all([prisma.$disconnect(), redisClient.quit().catch((err) => logger.error("Redis shutdown error:", err))]);
+				logger.info("All connections closed");
+			} catch (err) {
+				logger.error("Shutdown error:", err);
+			} finally {
+				server.close(() => {
+					logger.info("Server closed");
+					process.exit(0);
+				});
+			}
 		};
 
 		process.on("SIGTERM", shutdown);
