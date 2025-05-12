@@ -11,7 +11,7 @@ export const redisClient = new Redis({
 	// Konfigurasi TLS khusus production
 	...(env.NODE_ENV === "production" && {
 		tls: {
-			ca: fs.readFileSync("/etc/letsencrypt/live/api.prooyek.com/chain.pem"),
+			ca: fs.readFileSync("/etc/redis-certs/chain.pem"),
 			servername: "api.prooyek.com",
 			rejectUnauthorized: true,
 		},
