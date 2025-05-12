@@ -6,7 +6,7 @@ import { ICartAddonRequest, ICartGuestRequest, ICartResponse, ISetCartRequest } 
 import { IAddonRequest, IGuestRequest } from "../../types/transaction";
 
 const generateKey = (accountId: string, scheduleId: string) => `transaction:${scheduleId}:${accountId}`;
-const ONE_HOURS = 60 * 60 * 1; // detik
+const ONE_HOURS: number = 60 * 60 * 1; // detik
 
 export const cartService = {
 	async setCart(accountId: string, scheduleId: string, body: ISetCartRequest) {
@@ -75,9 +75,7 @@ export const cartService = {
 				guests: [],
 			};
 
-			await redisClient.set(key, JSON.stringify(formatedData), {
-				EX: ONE_HOURS,
-			});
+			await redisClient.set(key, JSON.stringify(formatedData), "EX", ONE_HOURS);
 		}
 	},
 	async getCart(accountId: string, scheduleId: string): Promise<{ data: ICartResponse; ttl: number }> {
@@ -133,9 +131,7 @@ export const cartService = {
 		);
 
 		const updatedTx: ICartResponse = { ...transaction, addons: addonsData, addonPrice: addonsData.reduce((idx, item) => idx + Number(item.totalPrice), 0) };
-		await redisClient.set(key, JSON.stringify(updatedTx), {
-			EX: ONE_HOURS,
-		});
+		await redisClient.set(key, JSON.stringify(updatedTx), "EX", ONE_HOURS);
 		return updatedTx;
 	},
 	async setGuestCart(accountId: string, scheduleId: string, body: ICartGuestRequest[]): Promise<ICartResponse> {
@@ -234,9 +230,7 @@ export const cartService = {
 			amountUnderPayment: 0,
 		};
 
-		await redisClient.set(key, JSON.stringify(updatedCart), {
-			EX: ONE_HOURS,
-		});
+		await redisClient.set(key, JSON.stringify(updatedCart), "EX", ONE_HOURS);
 		return updatedCart;
 	},
 	async setMethodCart(accountId: string, scheduleId: string, body: { method: "dp" | "full" }): Promise<ICartResponse> {
@@ -253,9 +247,7 @@ export const cartService = {
 			amountPayment: body.method === "dp" ? 0.25 * Number(transaction.finalTotal) : transaction.finalTotal,
 			amountUnderPayment: body.method === "dp" ? 0.75 * Number(transaction.finalTotal) : 0,
 		};
-		await redisClient.set(key, JSON.stringify(updateCart), {
-			EX: ONE_HOURS,
-		});
+		await redisClient.set(key, JSON.stringify(updateCart), "EX", ONE_HOURS);
 
 		return updateCart;
 	},
