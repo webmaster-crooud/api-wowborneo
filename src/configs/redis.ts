@@ -7,6 +7,7 @@ export const redisClient = createClient({
 		tls: env.NODE_ENV === "production",
 		rejectUnauthorized: env.NODE_ENV === "production",
 		servername: env.NODE_ENV === "production" ? "api.prooyek.com" : "localhost",
+		ca: "",
 	},
-	password: env.REDIS_PASSWORD,
+	password: env.NODE_ENV === "production" ? env.REDIS_PASSWORD : "",
 });
