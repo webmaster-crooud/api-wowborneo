@@ -94,7 +94,7 @@ app.use(
 		store: redisStore,
 		secret: env.SESSION_KEY,
 		resave: false,
-		saveUninitialized: false,
+		saveUninitialized: env.NODE_ENV === "production" ? true : false,
 		rolling: true,
 		cookie: {
 			secure: env.NODE_ENV === "production",
