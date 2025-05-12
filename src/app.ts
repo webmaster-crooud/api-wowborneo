@@ -25,7 +25,7 @@ import { redisClient } from "./configs/redis";
 import { cartRoutes } from "./modules/cart/cart.route";
 
 // 1. Inisialisasi Redis Client
-redisClient.on("error", (err) => logger.error(`Redis Client Error: ${(err as Error).message}`));
+redisClient.on("error", (err: Error) => logger.error(`Redis Client Error: ${(err as Error).message}`));
 async function testRedis() {
 	try {
 		await redisClient.ping();
@@ -175,7 +175,7 @@ prisma
 			logger.info("Shutting down gracefully...");
 
 			try {
-				await Promise.all([prisma.$disconnect(), redisClient.quit().catch((err) => logger.error("Redis shutdown error:", err))]);
+				await Promise.all([prisma.$disconnect(), redisClient.quit().catch((err: Error) => logger.error("Redis shutdown error:", err as Error))]);
 				logger.info("All connections closed");
 			} catch (err) {
 				logger.error("Shutdown error:", err);
