@@ -87,7 +87,9 @@ const { csrfSynchronisedProtection, generateToken } = csrfSync({
 app.use(cookieParser(env.COOKIE_SECRET));
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-
+if (env.NODE_ENV === "production") {
+	app.set("trust proxy", 1); // harus sebelum session()
+}
 // 5. Session Configuration dengan Redis
 app.use(
 	session({
@@ -107,7 +109,7 @@ app.use(
 );
 
 app.use(csrfSynchronisedProtection);
-env.NODE_ENV === "production" && app.set("trust proxy", 1);
+// env.NODE_ENV === "production" && app.set("trust proxy", 1);
 // 8. Request Logging
 app.use((req, res, next) => {
 	logger.info(`${req.method} ${req.originalUrl} - ${req.ip}`);
@@ -158,7 +160,7 @@ prisma
 	.then(() => {
 		logger.info("Database connected");
 		const server = app.listen(env.PORT, () => {
-			logger.info(`Server running on ${env.BASE_URL}:${env.PORT}`);
+			logger.info(`Server running on ${env.NODE_ENV === "production" ? env.BASE_URL : `${env.BASE_URL}:${env.PORT}`}`);
 		});
 
 		const shutdown = async () => {
