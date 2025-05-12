@@ -6,6 +6,7 @@ export const env = cleanEnv(process.env, {
 	NODE_ENV: str({ choices: ["development", "production"] }),
 	DATABASE_URL: str(),
 	REDIS_URL: str(),
+	REDIS_PASSWORD: str(),
 
 	BASE_URL: url({ default: "http://localhost" }),
 	PORT: port({ default: 3000 }),
