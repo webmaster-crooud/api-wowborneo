@@ -1,11 +1,12 @@
 import { config } from "dotenv";
-import { cleanEnv, port, str, url } from "envalid";
+import { cleanEnv, num, port, str, url } from "envalid";
 
 config({ path: process.env.NODE_ENV === "production" ? ".env" : `.env.${process.env.NODE_ENV || "development"}` });
 export const env = cleanEnv(process.env, {
 	NODE_ENV: str({ choices: ["development", "production"] }),
 	DATABASE_URL: str(),
-	REDIS_URL: str(),
+	REDIS_HOST: str(),
+	REDIS_PORT: num(),
 	REDIS_PASSWORD: str(),
 
 	BASE_URL: url({ default: "http://localhost" }),

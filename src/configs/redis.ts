@@ -1,47 +1,29 @@
 import Redis from "ioredis";
 import { env } from "./env";
-import fs from "fs";
 
 export const redisClient = new Redis({
-	// Konfigurasi dasar
-	host: env.NODE_ENV === "production" ? "api.prooyek.com" : "localhost",
-	port: 6379,
-	password: env.NODE_ENV === "production" ? env.REDIS_PASSWORD : "",
-
-	// Konfigurasi TLS khusus production
-	...(env.NODE_ENV === "production" && {
-		tls: {
-			// ca: [
-			// 	fs.readFileSync("/etc/redis-certs/fullchain.pem"), // Gunakan fullchain (server + intermediate)
-			// 	fs.readFileSync("/etc/ssl/certs/ISRG_Root_X1.pem"), // Tambahkan root CA
-			// ],
-			servername: "api.prooyek.com",
-			rejectUnauthorized: false,
-			// checkServerIdentity: () => undefined, // Skip hostname verification
-		},
-	}),
-
-	// Opsi optimisasi koneksi
+	host: env.REDIS_HOST, // localhost atau 127.0.0.1
+	port: env.REDIS_PORT, // 6379
+	password: env.NODE_ENV === "production" ? env.REDIS_PASSWORD : "", // kosongkan jika tidak pakai password
 	connectTimeout: 5000,
-	retryStrategy: (times: number) => Math.min(times * 100, 3000),
-	reconnectOnError: (err: Error) => {
-		console.error("Redis connection error:", (err as Error).message);
-		return true; // Auto-reconnect
+	retryStrategy: (times) => Math.min(times * 100, 3000),
+	reconnectOnError: (err) => {
+		console.error("Redis error:", err.message);
+		return true;
 	},
 });
 
-// Event handler untuk monitoring
-redisClient.on("ready", () => console.log("Redis connected"));
-redisClient.on("error", (err: Error) => console.error("Redis error:", err as Error));
+// Monitoring events
+redisClient.on("ready", () => console.log("✅ Redis connected"));
+redisClient.on("error", (err) => console.error("❌ Redis error:", err.message));
 
-// Fungsi test koneksi
 export async function testRedisConnection() {
 	try {
 		const pong = await redisClient.ping();
-		console.log("Redis ping response:", pong); // Harusnya "PONG"
+		console.log("Redis ping:", pong); // => "PONG"
 		return true;
-	} catch (err: unknown) {
-		console.error("Redis connection test failed:", err);
+	} catch (err) {
+		console.error("Redis ping failed:", err);
 		return false;
 	}
 }

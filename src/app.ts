@@ -1,56 +1,41 @@
 import { URL } from "url";
-import cookieParser from "cookie-parser";
-import cors from "cors";
-import { csrfSync } from "csrf-sync";
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import helmet from "helmet";
+import cors from "cors";
+import cookieParser from "cookie-parser";
 import session from "express-session";
+import { csrfSync } from "csrf-sync";
+import { RedisStore } from "connect-redis";
 import { env } from "./configs/env";
-import logger from "./libs/logger";
+import { redisClient, testRedisConnection } from "./configs/redis";
 import prisma from "./configs/database";
+import logger from "./libs/logger";
+import { ApiError } from "./libs/apiResponse";
 import { errorHandler } from "./middlewares/error.middleware";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { adminRouter } from "./modules/admin/routes";
 import { accountRouter } from "./modules/account/account.routes";
 import { imageRoutes } from "./modules/image/image.routes";
-import { ApiError } from "./libs/apiResponse";
-import { StatusCodes } from "http-status-codes";
 import { transactionRoutes } from "./modules/transaction/transaction.routes";
+import { cartRoutes } from "./modules/cart/cart.route";
+import { memberRoutes } from "./modules/member/member.routes";
+import { homeRoutes } from "./modules/home/routes";
 import "./job/updateExchangeRates";
 import "./job/updateCompletedBooking";
-import { memberRoutes } from "./modules/member/member.routes";
-import { RedisStore } from "connect-redis";
-import { homeRoutes } from "./modules/home/routes";
-import { redisClient } from "./configs/redis";
-import { cartRoutes } from "./modules/cart/cart.route";
+import { StatusCodes } from "http-status-codes";
 
-// 1. Inisialisasi Redis Client
-redisClient.on("error", (err: Error) => logger.error(`Redis Client Error: ${(err as Error).message}`));
-async function testRedis() {
-	try {
-		await redisClient.ping();
-		console.log("Redis Ping Success");
-	} catch (err) {
-		console.error("Redis Ping Failed:", err);
+// Test koneksi Redis saat startup
+(async () => {
+	const ok = await testRedisConnection();
+	if (!ok) {
+		logger.error("Redis ping failed during startup");
 	}
-}
+})();
 
-testRedis();
-// (async () => {
-// 	await redisClient.connect();
-// 	logger.info("Connected to Redis successfully");
-// })();
-
-// 2. Konfigurasi Redis Store
-const redisStore = new RedisStore({
-	client: redisClient,
-	prefix: "session:",
-	ttl: 86340, // 7 hari dalam detik
-});
-
+// Konfigurasi Express app
 const app = express();
 
-// 3. Security Middleware
+// 1. Security Headers via Helmet
 app.use(
 	helmet({
 		contentSecurityPolicy: {
@@ -66,17 +51,16 @@ app.use(
 );
 app.disable("x-powered-by");
 
-// 4. CORS Configuration
+// 2. CORS Configuration
 const allowedOrigins = env.CORS_ORIGINS.split(",");
 app.use(
 	cors({
 		origin: (origin, callback) => {
 			if (!origin || allowedOrigins.includes(origin)) {
-				callback(null, true);
-			} else {
-				logger.warn(`Blocked by CORS: ${origin}`);
-				callback(new ApiError(StatusCodes.FORBIDDEN, "Not allowed by CORS"));
+				return callback(null, true);
 			}
+			logger.warn(`Blocked by CORS: ${origin}`);
+			callback(new ApiError(StatusCodes.FORBIDDEN, "Not allowed by CORS"));
 		},
 		credentials: true,
 		methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -84,47 +68,54 @@ app.use(
 	})
 );
 
-// 6. CSRF Protection
+// 3. Parsers & CSRF Setup
+app.use(cookieParser(env.COOKIE_SECRET));
+app.use(express.json({ limit: "10kb" }));
+app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+
+if (env.NODE_ENV === "production") {
+	app.set("trust proxy", 1);
+}
+
 const { csrfSynchronisedProtection, generateToken } = csrfSync({
-	getTokenFromRequest: (req) => req.headers["x-csrf-token"] as string,
+	getTokenFromRequest: (req: Request) => req.headers["x-csrf-token"] as string,
 	size: 64,
 	ignoredMethods: ["GET", "HEAD", "OPTIONS"],
 });
 
-// 7. Body Parser & Cookie Parser
-app.use(cookieParser(env.COOKIE_SECRET));
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-if (env.NODE_ENV === "production") {
-	app.set("trust proxy", 1); // harus sebelum session()
-}
-// 5. Session Configuration dengan Redis
+// 4. Session Configuration with RedisStore
+const redisStore = new RedisStore({
+	client: redisClient,
+	prefix: "sess:",
+	ttl: 7 * 24 * 60 * 60, // 7 hari
+});
+
 app.use(
 	session({
 		store: redisStore,
 		secret: env.SESSION_KEY,
 		resave: false,
-		saveUninitialized: env.NODE_ENV === "production" ? true : false,
+		saveUninitialized: env.NODE_ENV === "development",
 		rolling: true,
 		cookie: {
 			secure: env.NODE_ENV === "production",
 			httpOnly: true,
-			// domain: env.NODE_ENV === "production" ? env.DOMAIN_URL : undefined,
-			sameSite: "none", // cross-site cookies but secure
-			maxAge: 24 * 60 * 60 * 1000,
+			sameSite: "none",
+			maxAge: 24 * 60 * 60 * 1000, // 1 hari
 		},
 	})
 );
 
+// Apply CSRF protection
 app.use(csrfSynchronisedProtection);
-// env.NODE_ENV === "production" && app.set("trust proxy", 1);
-// 8. Request Logging
-app.use((req, res, next) => {
+
+// 5. Request Logging Middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
 	logger.info(`${req.method} ${req.originalUrl} - ${req.ip}`);
 	next();
 });
 
-// 9. Routes
+// 6. Routes
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/account", accountRouter);
@@ -134,8 +125,8 @@ app.use("/api/v1/cart", cartRoutes);
 app.use("/api/v1/member", memberRoutes);
 app.use("/api/v1/home", homeRoutes);
 
-// 10. Security Headers
-app.use((req, res, next) => {
+// 7. Additional Security Headers
+app.use((req: Request, res: Response, next: NextFunction) => {
 	res.setHeader("X-Content-Type-Options", "nosniff");
 	res.setHeader("X-Frame-Options", "DENY");
 	res.setHeader("X-XSS-Protection", "1; mode=block");
@@ -143,39 +134,41 @@ app.use((req, res, next) => {
 	next();
 });
 
-// 11. Health Check & CSRF Endpoint
-app.get("/health", (req, res) => {
+// 8. Health Check & CSRF Token Endpoints
+app.get("/health", (req: Request, res: Response) => {
 	res.json({
 		status: "OK",
 		timestamp: new Date().toISOString(),
-		redis: redisClient ? "connected" : "disconnected",
+		redis: redisClient.status,
 	});
 });
 
-app.get("/api/v1/csrf-token", (req, res) => {
+app.get("/api/v1/csrf-token", (req: Request, res: Response) => {
 	res.json({
 		csrfToken: generateToken(req),
 		timestamp: new Date().toISOString(),
 	});
 });
 
-// 12. Error Handling
+// 9. Error Handling Middleware
 app.use(errorHandler);
 
-// 13. Database & Server Startup
+// 10. Connect to Database & Start Server
 prisma
 	.$connect()
 	.then(() => {
-		logger.info("Database connected");
+		logger.info("✅ Database connected");
 		const server = app.listen(env.PORT, () => {
-			logger.info(`Server running on ${env.NODE_ENV === "production" ? env.BASE_URL : `${env.BASE_URL}:${env.PORT}`}`);
+			const url = env.NODE_ENV === "production" ? env.BASE_URL : `${env.BASE_URL}:${env.PORT}`;
+			logger.info(`🚀 Server running at ${url}`);
 		});
 
+		// Graceful shutdown
 		const shutdown = async () => {
 			logger.info("Shutting down gracefully...");
 
 			try {
-				await Promise.all([prisma.$disconnect(), redisClient.quit().catch((err: Error) => logger.error("Redis shutdown error:", err as Error))]);
+				await Promise.all([prisma.$disconnect(), redisClient.quit().catch((e) => logger.error("Redis shutdown error:", e))]);
 				logger.info("All connections closed");
 			} catch (err) {
 				logger.error("Shutdown error:", err);
