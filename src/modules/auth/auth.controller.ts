@@ -5,6 +5,7 @@ import { RegisterInterface } from "../../types/auth";
 import { ApiError, ApiResponse } from "../../libs/apiResponse";
 import { env } from "../../configs/env";
 import prisma from "../../configs/database";
+import logger from "../../libs/logger";
 
 const registerController = async (req: Request, res: Response) => {
 	try {
@@ -77,6 +78,7 @@ async function changePasswordController(req: Request, res: Response) {
 
 async function loginController(req: Request, res: Response) {
 	try {
+		logger.info("Login attempt", { body: req.body });
 		const body = req.body;
 		if (!body) throw new ApiError(StatusCodes.BAD_GATEWAY, "Login gagal!");
 		const result = await authService.login(body);
@@ -113,7 +115,7 @@ async function loginController(req: Request, res: Response) {
 			httpOnly: true,
 			secure: env.NODE_ENV === "production",
 			sameSite: "none",
-			domain: ".vercel.app",
+			// domain: ".vercel.app",
 			maxAge: 15 * 60 * 1000, // 15 minutes
 		});
 
@@ -121,7 +123,7 @@ async function loginController(req: Request, res: Response) {
 			httpOnly: true,
 			secure: env.NODE_ENV === "production",
 			sameSite: "none",
-			domain: ".vercel.app",
+			// domain: ".vercel.app",
 			maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 		});
 		ApiResponse.sendSuccess(res, data, StatusCodes.OK);
@@ -139,7 +141,7 @@ async function refreshTokenController(req: Request, res: Response) {
 			httpOnly: true,
 			secure: env.NODE_ENV === "production",
 			sameSite: "none",
-			domain: ".vercel.app",
+			// domain: ".vercel.app",
 			maxAge: 15 * 60 * 1000, // 15 minutes
 		});
 		ApiResponse.sendSuccess(res, { message: "Token refreshed" }, StatusCodes.OK);
