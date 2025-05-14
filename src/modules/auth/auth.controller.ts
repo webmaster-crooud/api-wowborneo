@@ -112,14 +112,16 @@ async function loginController(req: Request, res: Response) {
 		res.cookie("accessToken", result.accessToken, {
 			httpOnly: true,
 			secure: env.NODE_ENV === "production",
-			sameSite: "strict",
+			sameSite: "none",
+			domain: ".vercel.app",
 			maxAge: 15 * 60 * 1000, // 15 minutes
 		});
 
 		res.cookie("refreshToken", result.refreshToken, {
 			httpOnly: true,
 			secure: env.NODE_ENV === "production",
-			sameSite: "strict",
+			sameSite: "none",
+			domain: ".vercel.app",
 			maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 		});
 		ApiResponse.sendSuccess(res, data, StatusCodes.OK);
@@ -136,7 +138,8 @@ async function refreshTokenController(req: Request, res: Response) {
 		res.cookie("accessToken", result.accessToken, {
 			httpOnly: true,
 			secure: env.NODE_ENV === "production",
-			sameSite: "strict",
+			sameSite: "none",
+			domain: ".vercel.app",
 			maxAge: 15 * 60 * 1000, // 15 minutes
 		});
 		ApiResponse.sendSuccess(res, { message: "Token refreshed" }, StatusCodes.OK);
