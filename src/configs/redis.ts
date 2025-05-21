@@ -16,14 +16,3 @@ export const redisClient = new Redis({
 // Monitoring events
 redisClient.on("ready", () => console.log("✅ Redis connected"));
 redisClient.on("error", (err) => console.error("❌ Redis error:", err.message));
-
-export async function testRedisConnection() {
-	try {
-		const pong = await redisClient.ping();
-		console.log("Redis ping:", pong); // => "PONG"
-		return true;
-	} catch (err) {
-		console.error("Redis ping failed:", err);
-		return false;
-	}
-}

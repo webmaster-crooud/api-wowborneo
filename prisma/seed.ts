@@ -62,6 +62,36 @@ async function main() {
 		});
 	}
 
+	if (countAcc === 1) {
+		const password = "@Laborare11";
+		const now = new Date();
+		const salt = await crypt.genSalt(parseInt(env.BCRYPT_ROUND));
+		const newPassword = crypt.hashSync(password, parseInt(salt));
+		await prisma.user.create({
+			data: {
+				email: "mikaeladityan.99@gmail.com",
+				firstName: "Mikael",
+				lastName: "Aditya Nugroho",
+				phone: "",
+				status: "ACTIVED",
+				createdAt: now,
+				updatedAt: now,
+				account: {
+					create: {
+						email: "admin@wowborneo.com",
+						password: newPassword,
+						ip: "::1",
+						userAgent: "Windows",
+						createdAt: now,
+						updatedAt: now,
+						roleId: 5,
+						status: "ACTIVED",
+					},
+				},
+			},
+		});
+	}
+
 	console.log("Create Account berhasil dijalankan");
 }
 

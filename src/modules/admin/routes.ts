@@ -12,6 +12,7 @@ import { adminBookingRoutes } from "./booking/booking.routes";
 import { refundRoutes } from "./refund/refund.route";
 import { agentRoutes } from "./agent/agent.route";
 import { promotionRoutes } from "./promotion/promotion.route";
+import { packageRoutes } from "./package/package.routes";
 
 export const adminRouter = express.Router();
 
@@ -28,3 +29,4 @@ adminRouter.use("/booking", adminBookingRoutes);
 adminRouter.use("/refund", refundRoutes);
 adminRouter.use("/agent", agentRoutes);
 adminRouter.use("/promotion", promotionRoutes);
+adminRouter.use("/package", packageRoutes);

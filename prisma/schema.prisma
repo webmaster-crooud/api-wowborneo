@@ -87,6 +87,31 @@ model Role {
   @@map("roles")
 }
 
+model Package {
+  id String @db.VarChar(100) @default(cuid()) @id
+  title String @db.VarChar(100)
+  description String? @db.Text
+
+  status STATUS
+  createdAt  DateTime    @db.Timestamp() @map("created_at")
+  updatedAt  DateTime    @db.Timestamp() @updatedAt @map("updated_at")
+  packageCruise PackageCruise[]
+  @@map("packages")
+}
+
+model PackageCruise {
+  id Int @db.Int @id @default(autoincrement())
+  cruiseId String @db.VarChar(100)
+  packageId String @db.VarChar(100)
+
+
+  packages Package @relation(fields: [packageId], references: [id])
+  cruises Cruise @relation(fields: [cruiseId], references: [id])
+
+
+  @@map("package_cruises")
+}
+
 model Cruise {
   id         String      @db.VarChar(50) @default(cuid()) @id
   slug       String      @db.VarChar(100) @unique
@@ -107,6 +132,7 @@ model Cruise {
   createdAt  DateTime    @db.Timestamp() @map("created_at")
   updatedAt  DateTime    @db.Timestamp() @updatedAt @map("updated_at")
 
+  packageCruise PackageCruise[]
   destinations Destination[]
   highlights Highlight[]
   include Include[]

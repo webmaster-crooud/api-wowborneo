@@ -35,6 +35,7 @@ export interface IDetailBoatResponse {
 	deck: IDeckResponse;
 	createdAt: Date | string;
 	updatedAt: Date | string;
+	cruise: string;
 }
 
 export interface IListBoatResponse {

@@ -6,7 +6,6 @@ async function updateExchangeRate() {
 		const response = await fetch("https://api.frankfurter.app/latest?from=USD&to=IDR");
 		const data = await response.json();
 		const rate = await data.rates.IDR;
-		console.log(rate);
 
 		await prisma.exchangeRate.upsert({
 			where: { id: 1 },

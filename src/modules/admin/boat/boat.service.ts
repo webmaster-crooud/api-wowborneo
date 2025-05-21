@@ -225,6 +225,16 @@ export const boatService = {
 				],
 			},
 			include: {
+				// schedules: {
+				// 	select: {
+				// 		cruise: {
+				// 			select: {
+				// 				title: true,
+				// 				id: true,
+				// 			},
+				// 		},
+				// 	},
+				// },
 				abouts: true,
 				cabins: true,
 				deck: true,
@@ -320,8 +330,21 @@ export const boatService = {
 		});
 
 		// Kembalikan data cruise yang sudah dilengkapi dengan cover dan gallery
+		const getCruise = await prisma.schedule.findFirst({
+			where: {
+				boatId: boat.id,
+			},
+			select: {
+				cruise: {
+					select: {
+						title: true,
+					},
+				},
+			},
+		});
 		return {
 			...boat,
+			cruise: getCruise?.cruise.title || "",
 			cover: boatCover || null,
 			deck: {
 				id: boat.deck?.id || "",

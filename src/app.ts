@@ -7,7 +7,7 @@ import session from "express-session";
 import { csrfSync } from "csrf-sync";
 import { RedisStore } from "connect-redis";
 import { env } from "./configs/env";
-import { redisClient, testRedisConnection } from "./configs/redis";
+import { redisClient } from "./configs/redis";
 import prisma from "./configs/database";
 import logger from "./libs/logger";
 import { ApiError } from "./libs/apiResponse";
@@ -23,14 +23,6 @@ import { homeRoutes } from "./modules/home/routes";
 import "./job/updateExchangeRates";
 import "./job/updateCompletedBooking";
 import { StatusCodes } from "http-status-codes";
-
-// Test koneksi Redis saat startup
-(async () => {
-	const ok = await testRedisConnection();
-	if (!ok) {
-		logger.error("Redis ping failed during startup");
-	}
-})();
 
 // Konfigurasi Express app
 const app = express();
@@ -65,6 +57,7 @@ app.use(
 		credentials: true,
 		methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 		allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
+		exposedHeaders: ["Set-Cookie", "X-CSRF-Token"],
 	})
 );
 
@@ -78,7 +71,10 @@ if (env.NODE_ENV === "production") {
 }
 
 const { csrfSynchronisedProtection, generateToken } = csrfSync({
-	getTokenFromRequest: (req: Request) => req.headers["x-csrf-token"] as string,
+	getTokenFromRequest: (req: Request) => {
+		// Cek token dari header terlebih dahulu
+		return (req.headers["x-csrf-token"] as string) || req.session.csrfToken;
+	},
 	size: 64,
 	ignoredMethods: ["GET", "HEAD", "OPTIONS"],
 });
@@ -95,25 +91,24 @@ app.use(
 		store: redisStore,
 		secret: env.SESSION_KEY,
 		resave: false,
-		saveUninitialized: env.NODE_ENV === "development",
+		saveUninitialized: false, // Pastikan false untuk keamanan
 		rolling: true,
 		cookie: {
 			secure: env.NODE_ENV === "production",
 			httpOnly: true,
-			sameSite: "none",
-			maxAge: 24 * 60 * 60 * 1000, // 1 hari
+			sameSite: "lax", // Lebih aman untuk CSRF
+			maxAge: 24 * 60 * 60 * 1000,
 		},
 	})
 );
-
 // Apply CSRF protection
 app.use(csrfSynchronisedProtection);
 
-// 5. Request Logging Middleware
-app.use((req: Request, res: Response, next: NextFunction) => {
-	logger.info(`${req.method} ${req.originalUrl} - ${req.ip}`);
-	next();
-});
+// // 5. Request Logging Middleware
+// app.use((req: Request, res: Response, next: NextFunction) => {
+// 	logger.info(`${req.method} ${req.originalUrl} - ${req.ip}`);
+// 	next();
+// });
 
 // 6. Routes
 app.use("/api/v1/auth", authRoutes);
@@ -144,8 +139,15 @@ app.get("/health", (req: Request, res: Response) => {
 });
 
 app.get("/api/v1/csrf-token", (req: Request, res: Response) => {
+	// Tambahkan header untuk ekspos header kustom ke frontend
+	res.header("Access-Control-Expose-Headers", "X-CSRF-Token");
+
+	// Generate token dan attach ke header
+	const csrfToken = generateToken(req);
+	res.setHeader("X-CSRF-Token", csrfToken);
+
 	res.json({
-		csrfToken: generateToken(req),
+		csrfToken,
 		timestamp: new Date().toISOString(),
 	});
 });
