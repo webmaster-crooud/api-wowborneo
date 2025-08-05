@@ -6,6 +6,7 @@ export interface IPackageResponse {
 	description: string;
 	cruises: Array<{
 		title: string;
+		id?: string;
 	}>;
 	date: string | Date;
 	status: STATUS;

@@ -108,7 +108,7 @@ model PackageCruise {
   packages Package @relation(fields: [packageId], references: [id])
   cruises Cruise @relation(fields: [cruiseId], references: [id])
 
-
+  @@unique([cruiseId, packageId])
   @@map("package_cruises")
 }
 

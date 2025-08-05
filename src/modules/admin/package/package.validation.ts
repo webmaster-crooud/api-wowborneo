@@ -5,7 +5,9 @@ const cruises = z.object({
 });
 
 export const createPackageSchema = z.object({
-	title: z.string({ required_error: "Title is required!" }).max(100, { message: "Title must have maximum 100 character" }),
-	description: z.string().optional().nullable(),
-	cruises: z.array(cruises),
+	body: z.object({
+		title: z.string({ required_error: "Title is required!" }).max(100, { message: "Title must have maximum 100 character" }),
+		description: z.string().optional().nullable(),
+		cruises: z.array(cruises),
+	}),
 });
