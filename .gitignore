@@ -18,9 +18,6 @@ dist/
 .vscode/
 .idea/
 
-# Prisma
-/prisma/migrations/
-/prisma/*.db
 
 # OS files
 .DS_Store
