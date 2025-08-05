@@ -25,8 +25,11 @@ export const env = cleanEnv(process.env, {
 	REFRESH_TOKEN_SECRET: str(),
 	COOKIE_SECRET: str({ default: "https://transaction-wowborneo.vercel.app,http://localhost:3003" }),
 	CORS_ORIGINS: str(),
-	MAILERSEND_KEY: str(),
-	COMPANY_MAIL: str(),
+
+	MAILERSEND_KEY: str({}),
+	COMPANY_MAIL: str({}),
+	CS_MAIL: str({}),
+	NAME_MAIL: str({}),
 
 	S3_BUCKET_NAME: str(),
 	S3_ACCESS_KEY: str(),

@@ -7,8 +7,8 @@ import { env } from "../../configs/env";
 import { formatIndonesia, formatUnix } from "../../libs/moment";
 import { generateAccessToken, generateRefreshToken, PayloadGenerateJWTToken } from "../../libs/jwt";
 import { OTPSenderTemplate } from "../../templates/OTPSender.template";
-import { sendEmail } from "../../libs/mailersend";
 import { ForgotPasswordTemplate } from "../../templates/ForgotPassword.template";
+import { sendPasswordResetEmail, sendVerificationEmail } from "../../libs/mailersend";
 
 // Jangan lupa tambahkan max attempt
 async function register(body: RegisterInterface, ip: string | undefined, userAgent: string) {
@@ -88,19 +88,7 @@ async function register(body: RegisterInterface, ip: string | undefined, userAge
 		},
 	});
 
-	const content = OTPSenderTemplate({
-		firstName: result.firstName,
-		lastName: `${result.lastName}`,
-		subject: "Verification Register Member",
-		otp: otp,
-	});
-	await sendEmail({
-		email: result.email,
-		firstName: result.firstName,
-		lastName: result.lastName || "",
-		subject: "Verification Register Member",
-		content: content,
-	});
+	await sendVerificationEmail(result.email, otp);
 
 	// const message = `Kode verifikasi pendaftaran: \n\n*${result.account?.emailVerify[0].token}* \n\n*Laborare Indonesia*\n_https://laborare.my.id_`;
 	// await whatsappSenderOTP(result.phone, message);
@@ -221,22 +209,8 @@ async function resendEmailVerify(email: string) {
 	});
 
 	const emailUser = result.accounts.user.email;
-	const firstName = result.accounts.user.firstName;
-	const lastName = result.accounts.user.lastName || "";
 
-	const content = OTPSenderTemplate({
-		firstName: firstName,
-		lastName: lastName,
-		subject: "Resend Email Verification",
-		otp: otp,
-	});
-	await sendEmail({
-		email: emailUser,
-		firstName: firstName,
-		lastName: lastName || "",
-		subject: "Resend Email Verification",
-		content: content,
-	});
+	await sendVerificationEmail(emailUser, otp);
 }
 
 async function forgotPassword(email: string) {
@@ -314,23 +288,8 @@ async function forgotPassword(email: string) {
 		const redirect = `${env.AUTH_URL}/reset-password/${checkAccount.email}?token=${otp}&notification=${encodeURIComponent("Please enter your new Password")}`;
 
 		const emailUser = result.accounts.user.email;
-		const firstName = result.accounts.user.firstName;
-		const lastName = result.accounts.user.lastName || "";
 
-		const content = ForgotPasswordTemplate({
-			firstName: firstName,
-			lastName: lastName,
-			subject: "Verification Forgot Password",
-			resetUrl: redirect,
-		});
-		await sendEmail({
-			email: emailUser,
-			firstName: firstName,
-			lastName: lastName || "",
-			subject: "Verification Forgot Password",
-			content: content,
-		});
-
+		await sendPasswordResetEmail(emailUser, otp, redirect);
 		return redirect;
 	}
 }

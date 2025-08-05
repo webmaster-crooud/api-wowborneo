@@ -75,13 +75,19 @@ async function paymentController(req: Request, res: Response) {
 	const { accountId, firstName, lastName, email } = req.user;
 	try {
 		const { scheduleId } = req.params;
+		console.log(scheduleId);
 		const key = `transaction:${scheduleId}:${accountId}`;
+		console.log(scheduleId);
+		console.log(accountId);
+		console.log(key);
 		const tx = await redisClient.get(key);
-		if (!tx) {
-			await redisClient.del(key);
-			throw new ApiError(StatusCodes.NOT_FOUND, "Transaction proceess is failed");
-		}
-		const data: ICartResponse = JSON.parse(tx);
+		console.log(tx);
+		// if (!tx) {
+		// 	await redisClient.del(key);
+		// 	throw new ApiError(StatusCodes.NOT_FOUND, "Transaction proceess is failed");
+		// }
+		console.log(tx);
+		const data: ICartResponse = JSON.parse(tx!);
 		const code = generateCode(data.scheduleId);
 		const requestId = uuid();
 		const clientId = env.DOKU_CLIENT_ID!;
@@ -125,6 +131,7 @@ async function paymentController(req: Request, res: Response) {
 						},
 					];
 
+		console.log(items);
 		const payload = {
 			order: {
 				client_id: clientId,
@@ -137,7 +144,7 @@ async function paymentController(req: Request, res: Response) {
 				language: "EN",
 				auto_redirect: true,
 				disable_retry_payment: true,
-				line_items: items,
+				// line_items: items,
 			},
 			customer: {
 				id: accountId,
@@ -151,6 +158,8 @@ async function paymentController(req: Request, res: Response) {
 				payment_method_types: ["VIRTUAL_ACCOUNT_BCA", "VIRTUAL_ACCOUNT_BANK_MANDIRI", "VIRTUAL_ACCOUNT_BANK_SYARIAH_MANDIRI", "VIRTUAL_ACCOUNT_DOKU", "VIRTUAL_ACCOUNT_BRI", "VIRTUAL_ACCOUNT_BNI", "VIRTUAL_ACCOUNT_BANK_PERMATA", "VIRTUAL_ACCOUNT_BANK_CIMB", "VIRTUAL_ACCOUNT_BANK_DANAMON", "ONLINE_TO_OFFLINE_ALFA", "CREDIT_CARD", "DIRECT_DEBIT_BRI", "EMONEY_SHOPEEPAY", "EMONEY_OVO", "QRIS", "PEER_TO_PEER_AKULAKU", "PEER_TO_PEER_KREDIVO", "PEER_TO_PEER_INDODANA"],
 			},
 		};
+
+		console.log(payload);
 
 		// Generate digest
 		const jsonBody = JSON.stringify(payload, null, 0);
@@ -170,6 +179,7 @@ async function paymentController(req: Request, res: Response) {
 			body: jsonBody,
 		});
 		const result = await response.json();
+		console.log(result);
 		if (result.response.payment.url) {
 			transactionService.transaction(data, code);
 		}

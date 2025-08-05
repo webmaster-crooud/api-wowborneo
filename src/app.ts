@@ -26,7 +26,6 @@ import { StatusCodes } from "http-status-codes";
 
 // Konfigurasi Express app
 const app = express();
-
 // 1. Security Headers via Helmet
 app.use(
 	helmet({
