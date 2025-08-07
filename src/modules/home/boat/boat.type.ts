@@ -1,8 +1,9 @@
+export type TYPECABIN = "DOUBLE" | "SUPER" | "TWIN";
+
 export interface IBoat {
 	name: string;
 	slug: string;
 	description: string;
-	cover: string;
 	abouts: IAboutBoat[];
 	experiences: IExperience[];
 	facilities: IFacility[];
@@ -11,6 +12,46 @@ export interface IBoat {
 		title: string;
 		description: string;
 	};
+	cover: string;
+	coverAlt?: string;
+}
+
+export interface IBoatListPage {
+	name: string;
+	slug: string;
+	description: string;
+	cover: string;
+	facilities: IFacility[];
+}
+
+export interface IBoatMinimal {
+	name: string;
+	slug: string;
+	description: string;
+	cover: string;
+}
+
+export interface IBoatDetail {
+	name: string;
+	slug: string;
+	description: string;
+	cover: string | null;
+	coverAlt?: string | null;
+	abouts: IAboutBoat[];
+	facilities: IFacility[];
+	cabins: {
+		type: TYPECABIN;
+		cover: string;
+		description: string;
+		price: string;
+	}[];
+	experiences: IExperience[];
+	deck: {
+		image: string | null;
+		title: string;
+		description: string;
+	};
+	cruise: string;
 }
 
 export interface IAboutBoat {
@@ -55,4 +96,12 @@ export interface ICruiseBoat {
 	night: number;
 	price: string;
 	cover: string;
+}
+export interface IImage {
+	id?: number;
+	imageType: "COVER" | "PHOTO";
+	alt: string | null;
+	entityId: string;
+	entityType: string;
+	source: string;
 }
