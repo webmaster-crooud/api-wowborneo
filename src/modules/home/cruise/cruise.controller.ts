@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { ApiError, ApiResponse } from "../../../libs/apiResponse";
 import { cruiseService } from "./cruise.service";
 import { StatusCodes } from "http-status-codes";
@@ -23,4 +23,22 @@ async function detailCruiseController(req: Request, res: Response) {
 	}
 }
 
-export default { getPackageCruiseController, detailCruiseController };
+async function minimal(req: Request, res: Response, next: NextFunction) {
+	try {
+		const data = await cruiseService.minimal();
+		ApiResponse.sendSuccess(res, data, 200);
+	} catch (error) {
+		ApiResponse.sendError(res, error as Error);
+	}
+}
+
+async function page(req: Request, res: Response, next: NextFunction) {
+	try {
+		const data = await cruiseService.page();
+		ApiResponse.sendSuccess(res, data, 200);
+	} catch (error) {
+		ApiResponse.sendError(res, error as Error);
+	}
+}
+
+export default { getPackageCruiseController, detailCruiseController, minimal, page };

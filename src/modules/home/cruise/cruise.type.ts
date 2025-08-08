@@ -44,3 +44,16 @@ export interface CruiseResponse {
 	information?: IInformation[];
 	cta?: string;
 }
+
+export interface CruiseMinimal {
+	title: string;
+	slug: string;
+	description: string;
+	cover: string;
+	duration: string;
+}
+export interface CruisePage {
+	title: string;
+	description: string;
+	cruises: CruiseMinimal[];
+}

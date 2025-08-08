@@ -1,12 +1,12 @@
 import { StatusCodes } from "http-status-codes";
 import prisma from "../../../configs/database";
 import { ApiError } from "../../../libs/apiResponse";
-import { CruiseResponse, PackageCruiseResponse } from "./cruise.type";
+import { CruiseResponse, PackageCruiseResponse, CruiseMinimal, CruisePage } from "./cruise.type";
 
 export const cruiseService = {
 	async listPackageCruise(): Promise<PackageCruiseResponse[]> {
 		const result = await prisma.$queryRaw<PackageCruiseResponse[]>`
-        SELECT 
+        SELECT
           p.title,
           p.description,
           JSON_ARRAYAGG(
@@ -14,18 +14,18 @@ export const cruiseService = {
               'title', c.title,
               'slug', c.slug,
               'price', (
-                SELECT MIN(cab.price) 
+                SELECT MIN(cab.price)
                 FROM cabins cab
                 JOIN boats b ON cab.boat_id = b.id
                 JOIN schedules s ON s.boat_id = b.id
                 WHERE s.cruise_id = c.id
               ),
               'cover', (
-                SELECT source 
-                FROM images 
-                WHERE entity_id = c.id 
-                  AND entity_type = 'CRUISE' 
-                  AND image_type = 'COVER' 
+                SELECT source
+                FROM images
+                WHERE entity_id = c.id
+                  AND entity_type = 'CRUISE'
+                  AND image_type = 'COVER'
                 LIMIT 1
               )
             )
@@ -37,7 +37,7 @@ export const cruiseService = {
         AND c.status = 'ACTIVED'
         OR c.status = 'FAVOURITED'
         GROUP BY p.id
-        
+
       `;
 
 		return result.map((pkg) => ({
@@ -252,5 +252,95 @@ export const cruiseService = {
 				description: h.description || "",
 			})),
 		};
+	},
+
+	async minimal(): Promise<CruiseMinimal[]> {
+		const result = await prisma.cruise.findMany({
+			where: {
+				status: {
+					notIn: ["BLOCKED", "PENDING", "DELETED"],
+				},
+			},
+		});
+
+		// Fetch cover images for each cruise
+		const cruisesWithCover = await Promise.all(result.map(async (cruise) => {
+			const cruiseCover = await prisma.image.findFirst({
+				where: {
+					entityId: String(cruise.id),
+					entityType: "CRUISE",
+					imageType: "COVER",
+				},
+				select: {
+					source: true,
+					alt: true,
+				},
+			});
+
+			return {
+				title: cruise.title,
+				description: cruise.description || "",
+				slug: cruise.slug,
+				cover: cruiseCover?.source || "",
+				coverAlt: cruiseCover?.alt || "",
+				duration: cruise.duration || "",
+			};
+		}));
+
+		return cruisesWithCover;
+	},
+
+	async page(): Promise<CruisePage[]> {
+		const result = await prisma.package.findMany({
+			where: {
+				status: {
+					notIn: ["BLOCKED", "PENDING", "DELETED"],
+				},
+			},
+			include: {
+				packageCruise: {
+					include: {
+						cruises: true,
+					},
+				},
+			},
+		});
+
+		const packagesWithCruises = await Promise.all(result.map(async (pkg) => {
+			const activeCruises = pkg.packageCruise
+				.filter(pc => pc.cruises && !["BLOCKED", "PENDING", "DELETED"].includes(pc.cruises.status))
+				.map(pc => pc.cruises);
+
+			const cruisesWithCover = await Promise.all(activeCruises.map(async (cruise) => {
+				const cruiseCover = await prisma.image.findFirst({
+					where: {
+						entityId: String(cruise.id),
+						entityType: "CRUISE",
+						imageType: "COVER",
+					},
+					select: {
+						source: true,
+						alt: true,
+					},
+				});
+
+				return {
+					title: cruise.title,
+					description: cruise.description || "",
+					slug: cruise.slug,
+					cover: cruiseCover?.source || "",
+					coverAlt: cruiseCover?.alt || "",
+					duration: cruise.duration || "",
+				};
+			}));
+
+			return {
+				title: pkg.title,
+				description: pkg.description || "",
+				cruises: cruisesWithCover,
+			};
+		}));
+
+		return packagesWithCruises;
 	},
 };
