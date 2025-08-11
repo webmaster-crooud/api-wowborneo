@@ -15,7 +15,7 @@ export const env = cleanEnv(process.env, {
 	BCRYPT_ROUND: str(),
 	SESSION_KEY: str(),
 
-	DOMAIN_URL: str({ default: ".vercel.app" }),
+	DOMAIN_URL: str({ default: ".prooyek.com" }),
 	HOME_URL: str(),
 	AUTH_URL: str(),
 	TRANSACTION_URL: str(),
@@ -23,7 +23,7 @@ export const env = cleanEnv(process.env, {
 
 	ACCESS_TOKEN_SECRET: str(),
 	REFRESH_TOKEN_SECRET: str(),
-	COOKIE_SECRET: str({ default: "https://transaction-wowborneo.vercel.app,http://localhost:3003" }),
+	COOKIE_SECRET: str({ default: "https://transaction-wowborneo.prooyek.com,http://localhost:3003" }),
 	CORS_ORIGINS: str(),
 
 	MAILERSEND_KEY: str({}),
