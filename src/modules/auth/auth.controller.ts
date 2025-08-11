@@ -194,11 +194,15 @@ async function refreshTokenController(req: Request, res: Response) {
 			httpOnly: true,
 			sameSite: "lax",
 			maxAge: ONE_DAY, // optional clear: same as loginController
+			domain: env.NODE_ENV === "production" ? ".prooyek.com" : "localhost", // Penting!
+			path: "/",
 		}).cookie("accessToken", newAccessToken, {
 			secure: env.NODE_ENV === "production",
 			httpOnly: true,
 			sameSite: "lax",
 			maxAge: 15 * 60 * 1000, // 15 menit
+			domain: env.NODE_ENV === "production" ? ".prooyek.com" : "localhost", // Penting!
+			path: "/",
 		});
 
 		// 8. Kirim response sukses
@@ -227,10 +231,14 @@ async function logoutController(req: Request, res: Response) {
 			httpOnly: true,
 			secure: env.NODE_ENV === "production",
 			sameSite: "lax",
+			domain: env.NODE_ENV === "production" ? ".prooyek.com" : "localhost", // Penting!
+			path: "/",
 		}).clearCookie("connect.sid", {
 			httpOnly: true,
 			secure: env.NODE_ENV === "production",
 			sameSite: "lax",
+			domain: env.NODE_ENV === "production" ? ".prooyek.com" : "localhost", // Penting!
+			path: "/",
 		});
 
 		// 4. Response sukses
