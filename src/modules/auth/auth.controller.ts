@@ -126,12 +126,16 @@ async function loginController(req: Request, res: Response) {
 			httpOnly: true,
 			sameSite: "lax", // Lebih aman untuk CSRF
 			maxAge: 24 * 60 * 60 * 1000,
+			domain: env.NODE_ENV === "production" ? ".prooyek.com" : "localhost", // Penting!
+			path: "/",
 		});
 		res.cookie("accessToken", result.accessToken, {
 			secure: env.NODE_ENV === "production",
 			httpOnly: true,
 			sameSite: "lax", // Lebih aman untuk CSRF
 			maxAge: 24 * 60 * 60 * 1000,
+			domain: env.NODE_ENV === "production" ? ".prooyek.com" : "localhost", // Penting!
+			path: "/",
 		});
 
 		ApiResponse.sendSuccess(res, data, StatusCodes.OK);
