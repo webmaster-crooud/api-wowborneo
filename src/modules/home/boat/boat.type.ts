@@ -34,6 +34,7 @@ export interface IBoatMinimal {
 export interface IBoatDetail {
 	name: string;
 	slug: string;
+	option: string;
 	description: string;
 	cover: string | null;
 	coverAlt?: string | null;

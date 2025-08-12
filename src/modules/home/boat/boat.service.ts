@@ -59,31 +59,33 @@ export class BoatService {
 		});
 
 		// Fetch cover images for each boat
-		const boatsWithCover = await Promise.all(result.map(async (boat) => {
-			const boatCover = await prisma.image.findFirst({
-				where: {
-					entityId: String(boat.id),
-					entityType: "BOAT",
-					imageType: "COVER",
-				},
-				select: {
-					source: true,
-					alt: true,
-				},
-			});
+		const boatsWithCover = await Promise.all(
+			result.map(async (boat) => {
+				const boatCover = await prisma.image.findFirst({
+					where: {
+						entityId: String(boat.id),
+						entityType: "BOAT",
+						imageType: "COVER",
+					},
+					select: {
+						source: true,
+						alt: true,
+					},
+				});
 
-			return {
-				name: boat.name,
-				description: boat.description || "",
-				slug: boat.slug,
-				cover: boatCover?.source || "",
-				facilities: boat.facilities.map(f => ({
-					name: f.name,
-					icon: f.icon || "",
-					description: f.description || "",
-				})),
-			};
-		}));
+				return {
+					name: boat.name,
+					description: boat.description || "",
+					slug: boat.slug,
+					cover: boatCover?.source || "",
+					facilities: boat.facilities.map((f) => ({
+						name: f.name,
+						icon: f.icon || "",
+						description: f.description || "",
+					})),
+				};
+			})
+		);
 
 		return boatsWithCover;
 	}
@@ -99,27 +101,29 @@ export class BoatService {
 		});
 
 		// Fetch cover images for each boat
-		const boatsWithCover = await Promise.all(result.map(async (boat) => {
-			const boatCover = await prisma.image.findFirst({
-				where: {
-					entityId: String(boat.id),
-					entityType: "BOAT",
-					imageType: "COVER",
-				},
-				select: {
-					source: true,
-					alt: true,
-				},
-			});
+		const boatsWithCover = await Promise.all(
+			result.map(async (boat) => {
+				const boatCover = await prisma.image.findFirst({
+					where: {
+						entityId: String(boat.id),
+						entityType: "BOAT",
+						imageType: "COVER",
+					},
+					select: {
+						source: true,
+						alt: true,
+					},
+				});
 
-			return {
-				name: boat.name,
-				description: boat.description || "",
-				slug: boat.slug,
-				cover: boatCover?.source || "",
-				coverAlt: boatCover?.alt || "",
-			};
-		}));
+				return {
+					name: boat.name,
+					description: boat.description || "",
+					slug: boat.slug,
+					cover: boatCover?.source || "",
+					coverAlt: boatCover?.alt || "",
+				};
+			})
+		);
 
 		return boatsWithCover;
 	}
@@ -245,15 +249,16 @@ export class BoatService {
 		return {
 			name: boat.name,
 			slug: boat.slug,
+			option: boat.optionText || "",
 			description: boat.description || "",
 			cover: boatCover?.source || "",
 			coverAlt: boatCover?.alt || "",
-			abouts: boat.abouts.map(a => ({
+			abouts: boat.abouts.map((a) => ({
 				id: a.id,
 				title: a.title,
 				description: a.description || "",
 			})),
-			facilities: boat.facilities.map(f => ({
+			facilities: boat.facilities.map((f) => ({
 				name: f.name,
 				icon: f.icon || "",
 				description: f.description || "",
