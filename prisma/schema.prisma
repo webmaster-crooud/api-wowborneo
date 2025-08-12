@@ -291,7 +291,7 @@ model Facility {
 model Deck {
   id Int @db.Int @id @default(autoincrement())
   title String @db.VarChar(100)
-  description String? @db.VarChar(100)
+  description String? @db.Text
   boatId String @db.VarChar(100) @unique @map("boat_id")
   
   boat Boat @relation(fields: [boatId], references: [id], onDelete: Cascade)
