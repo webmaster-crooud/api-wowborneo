@@ -48,6 +48,14 @@ export const cruiseService = {
 
 		const result = await prisma.$transaction(async (tx) => {
 			try {
+				const existingCruise = await tx.cruise.findFirst({
+					where: { slug },
+				});
+
+				if (existingCruise) {
+					const conflictField = existingCruise.slug === slug ? "slug" : "title";
+					throw new ApiError(StatusCodes.BAD_REQUEST, `Cruise with this ${conflictField} already exists! you can try to change the slug value`);
+				}
 				// Buat cruise
 				const cruise = await tx.cruise.create({
 					data: {
@@ -139,9 +147,9 @@ export const cruiseService = {
 			} catch (error) {
 				// Tangani error berdasarkan kode error Prisma
 				if ((error as any).code === "P2002") {
-					// Unique constraint violation
-					const targetField = (error as any).meta?.target?.[0];
-					throw new ApiError(StatusCodes.BAD_REQUEST, `Data with the same ${targetField || "field"} already exists! Please check your input.`);
+					const target = (error as any).meta?.target || [];
+					const field = target.join(", ") || "unknown field";
+					throw new ApiError(StatusCodes.BAD_REQUEST, `Data with the same ${field} already exists!`);
 				} else if ((error as any).code === "P2003") {
 					// Foreign key constraint violation
 					throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid reference: Related data not found!");

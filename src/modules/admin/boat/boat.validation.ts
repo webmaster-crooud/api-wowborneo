@@ -12,17 +12,17 @@ export const positiveDecimal = (fieldName: string) => z.number({ message: `${fie
 
 // Base validation schemas for related models
 export const AboutValidation = z.object({
-	title: sanitizeString("Title").regex(/^[\w\s-'()]+$/, "Contains invalid characters"),
+	title: sanitizeString("Title"),
 	description: z.string({ message: "Description must string!" }).max(2000, "Description must be less than 2000 characters").optional(),
 });
 
 const ExperienceValidation = z.object({
-	title: sanitizeString("Title").regex(/^[\w\s-'()]+$/, "Contains invalid characters"),
+	title: sanitizeString("Title"),
 	description: z.string().max(2000, "Description must be less than 2000 characters").optional(),
 });
 
 const FacilityValidation = z.object({
-	name: sanitizeString("Name").regex(/^[\w\s-'()]+$/, "Contains invalid characters"),
+	name: sanitizeString("Name"),
 	description: z.string().max(2000, "Description must be less than 2000 characters").optional(),
 	icon: z.string().max(100, "Icon must be less than 100 characters").optional(),
 });
@@ -31,21 +31,21 @@ const CabinValidation = z.object({
 	type: z.enum(["TWIN", "DOUBLE", "SUPER"], {
 		errorMap: () => ({ message: "Invalid cabin type. Must be TWIN, DOUBLE, or SUPER" }),
 	}),
-	name: sanitizeString("Cabin name").regex(/^[\w\s-'()]+$/, "Contains invalid characters"),
+	name: sanitizeString("Cabin name"),
 	maxCapacity: z.number().int("Must be integer").positive("Must be positive").max(10, "Max capacity is 10"),
 	description: z.string().max(2000, "Description must be less than 2000 characters").optional(),
 	price: positiveDecimal("Price"),
 });
 
 const DeckValidation = z.object({
-	title: sanitizeString("Title").regex(/^[\w\s-'()]+$/, "Contains invalid characters"),
+	title: sanitizeString("Title"),
 	description: z.string().max(2000, "Description must be less than 2000 characters").optional(),
 });
 
 // Main boat validation
 export const createBoatValidation = z.object({
 	body: z.object({
-		name: sanitizeString("Boat name").regex(/^[\w\s-'()]+$/, "Contains invalid characters"),
+		name: sanitizeString("Boat name"),
 
 		slug: z
 			.string()

@@ -116,7 +116,7 @@ model Cruise {
   id         String      @db.VarChar(50) @default(cuid()) @id
   slug       String      @db.VarChar(100) @unique
 
-  title      String      @db.VarChar(100) @unique
+  title      String      @db.VarChar(100)
   subTitle   String?     @db.VarChar(100) @map("sub_title")
   description String?    @db.Text
   departure  String?     @db.VarChar(100)

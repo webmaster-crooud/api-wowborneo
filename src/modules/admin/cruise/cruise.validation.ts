@@ -50,8 +50,8 @@ export const cruiseValidation = z.object({
 		description: z.string().max(1000, "Description: Max. 1000 characters").optional().nullable(),
 		derpature: z.string().max(100, "Departure: Max. 100 characters").optional().nullable(),
 		informationTitle: z.string().max(100, "Information Title: Max. 100 characters").optional().nullable(),
-		InformationText: z.string().max(100, "Information Text: Max. 100 characters").optional().nullable(),
-		cta: z.string().max(100, "CTA: Max. 100 characters").optional().nullable(),
+		InformationText: z.string().max(1000, "Information Text: Max. 1000 characters").optional().nullable(),
+		cta: z.string().max(1000, "CTA: Max. 1000 characters").optional().nullable(),
 		duration: z.string().max(100, "Duration: Max. 100 characters").optional().nullable(),
 
 		// Array validasi untuk destinasi
@@ -83,8 +83,8 @@ export const updateCruiseValidation = z.object({
 		description: z.string().max(1000, "Description: Max. 1000 characters").optional().nullable(),
 		derpature: z.string().max(100, "Departure: Max. 100 characters").optional().nullable(),
 		duration: z.string().max(100, "Duration: Max. 100 characters").optional().nullable(),
-		introductionText: z.string().max(100, "Introduction Text: Max. 100 characters").optional().nullable(),
+		introductionText: z.string().max(1000, "Introduction Text: Max. 1000 characters").optional().nullable(),
 		introductionTitle: z.string().max(100, "Introduction Title: Max. 100 characters").optional().nullable(),
-		cta: z.string().max(100, "Call To Action: Max. 100 characters").optional().nullable(),
+		cta: z.string().max(1000, "Call To Action: Max. 1000 characters").optional().nullable(),
 	}),
 });
