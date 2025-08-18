@@ -15,6 +15,20 @@ async function listController(req: Request, res: Response) {
 	}
 }
 
+async function listPaginatedController(req: Request, res: Response) {
+	try {
+		let { search, page } = req.query;
+		const searching: string | undefined = search ? search.toString() : undefined;
+		const pageNumber: number = page ? parseInt(page.toString(), 10) : 1;
+
+		const result = await memberService.listPaginated(searching, pageNumber);
+
+		ApiResponse.sendSuccess(res, result, StatusCodes.OK);
+	} catch (err) {
+		ApiResponse.sendError(res, err as Error);
+	}
+}
+
 async function actionController(req: Request, res: Response) {
 	const { accountId } = req.user;
 	try {
@@ -55,4 +69,4 @@ async function changeRoleController(req: Request, res: Response) {
 	}
 }
 
-export default { listController, actionController, changeRoleController };
+export default { listController, actionController, changeRoleController, listPaginatedController };

@@ -36,6 +36,22 @@ async function getController(req: Request, res: Response) {
 		ApiResponse.sendError(res, error as Error);
 	}
 }
+async function getPaginatedController(req: Request, res: Response) {
+	try {
+		const { search, filter, favourite, deleted, page } = req.query;
+		// Karena req.query mengembalikan nilai string atau undefined, kita perlu mengonversinya:
+		const searching: string | undefined = search ? search.toString() : undefined;
+		const orderDesc: boolean = filter === "true";
+		const isFav: boolean = favourite === "true";
+		const isDeleted: boolean = deleted === "true";
+		const pageNumber: number = page ? parseInt(page.toString(), 10) : 1;
+
+		const boat = await boatService.getPaginated(searching, orderDesc, isFav, isDeleted, pageNumber);
+		ApiResponse.sendSuccess(res, boat, StatusCodes.OK);
+	} catch (error) {
+		ApiResponse.sendError(res, error as Error);
+	}
+}
 async function detailController(req: Request, res: Response) {
 	try {
 		const { boatId } = req.params;
@@ -77,4 +93,4 @@ async function actionController(req: Request, res: Response) {
 		ApiResponse.sendError(res, error as Error);
 	}
 }
-export default { createController, getController, detailController, updateController, actionController };
+export default { createController, getController, detailController, updateController, actionController, getPaginatedController };

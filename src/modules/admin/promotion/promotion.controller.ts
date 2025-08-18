@@ -40,6 +40,19 @@ async function listController(req: Request, res: Response) {
 	}
 }
 
+async function listPaginatedController(req: Request, res: Response) {
+	try {
+		let { search, page } = req.query;
+		const searching: string | undefined = search ? search.toString() : undefined;
+		const pageNumber: number = page ? parseInt(page.toString(), 10) : 1;
+
+		const data = await promotionService.listPaginated(searching, pageNumber);
+		ApiResponse.sendSuccess(res, data, StatusCodes.OK);
+	} catch (error) {
+		ApiResponse.sendError(res, error as Error);
+	}
+}
+
 async function deleteController(req: Request, res: Response) {
 	const { accountId } = req.user;
 	try {
@@ -52,4 +65,4 @@ async function deleteController(req: Request, res: Response) {
 		ApiResponse.sendError(res, error as Error);
 	}
 }
-export default { createController, listController, updateController, deleteController };
+export default { createController, listController, updateController, deleteController, listPaginatedController };

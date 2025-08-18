@@ -4,5 +4,6 @@ import memberController from "./member.controller";
 
 export const memberRoutes = express.Router();
 memberRoutes.get("/", authMiddleware, memberController.listController);
+memberRoutes.get("/paginated", authMiddleware, memberController.listPaginatedController);
 memberRoutes.patch("/:memberId", authMiddleware, memberController.actionController);
 memberRoutes.patch("/role/:memberId", authMiddleware, memberController.changeRoleController);

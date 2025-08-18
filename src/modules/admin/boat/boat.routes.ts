@@ -13,6 +13,7 @@ export const boatRoutes = express.Router();
 
 boatRoutes.post("/", authMiddleware, validate(createBoatValidation), boatController.createController);
 boatRoutes.get("/", authMiddleware, boatController.getController);
+boatRoutes.get("/paginated", authMiddleware, boatController.getPaginatedController);
 boatRoutes.get("/:boatId", authMiddleware, boatController.detailController);
 boatRoutes.put("/:boatId", authMiddleware, validate(updateBoatValidation), boatController.updateController);
 boatRoutes.patch("/:boatId", authMiddleware, boatController.actionController);

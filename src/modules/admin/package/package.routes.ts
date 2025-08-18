@@ -7,6 +7,7 @@ import { createPackageSchema } from "./package.validation";
 export const packageRoutes = express.Router();
 
 packageRoutes.get("/", authMiddleware, packageController.listPackageController);
+packageRoutes.get("/paginated", authMiddleware, packageController.listPackagePaginatedController);
 packageRoutes.get("/cruise", authMiddleware, packageController.cruiseListPackageController);
 packageRoutes.get("/:id", authMiddleware, packageController.detailPackageController);
 packageRoutes.post("/", authMiddleware, validate(createPackageSchema), packageController.createPackageController);

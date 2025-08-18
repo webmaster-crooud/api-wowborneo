@@ -44,6 +44,61 @@ export const packageService = {
 		];
 	},
 
+	async listPaginated(search?: string, page: number = 1): Promise<{ data: IPackageResponse[]; total: number; currentPage: number; totalPages: number }> {
+		const itemPerPage = 10;
+		// Build the base filter
+		const filter: any = {};
+
+		if (search) {
+			filter.title = { contains: search };
+		}
+
+		const total = await prisma.package.count({ where: filter });
+		const result = await prisma.package.findMany({
+			where: filter,
+			select: {
+				id: true,
+				title: true,
+				description: true,
+				createdAt: true,
+				updatedAt: true,
+				status: true,
+				packageCruise: {
+					select: {
+						cruises: {
+							select: {
+								title: true,
+							},
+						},
+					},
+				},
+			},
+			orderBy: {
+				updatedAt: "desc",
+			},
+			take: itemPerPage,
+			skip: (page - 1) * itemPerPage,
+		});
+
+		const data = result.map((res) => ({
+			id: res.id,
+			title: res.title,
+			description: res.description || "",
+			date: res.createdAt !== res.updatedAt ? res.updatedAt : res.createdAt,
+			status: res.status,
+			cruises: res.packageCruise.map((pc) => ({
+				title: pc.cruises.title,
+			})),
+		}));
+
+		return {
+			data,
+			total,
+			currentPage: page,
+			totalPages: Math.ceil(total / itemPerPage)
+		};
+	},
+
 	async cruiseList(): Promise<{ id: string; title: string }[]> {
 		return await prisma.cruise.findMany({
 			where: {

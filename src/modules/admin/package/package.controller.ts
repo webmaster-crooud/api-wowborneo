@@ -14,6 +14,19 @@ async function listPackageController(req: Request, res: Response) {
 	}
 }
 
+async function listPackagePaginatedController(req: Request, res: Response) {
+	try {
+		let { search, page } = req.query;
+		const searching: string | undefined = search ? search.toString() : undefined;
+		const pageNumber: number = page ? parseInt(page.toString(), 10) : 1;
+
+		const data = await packageService.listPaginated(searching, pageNumber);
+		ApiResponse.sendSuccess(res, data, StatusCodes.OK);
+	} catch (error) {
+		ApiResponse.sendError(res, error as Error);
+	}
+}
+
 async function cruiseListPackageController(req: Request, res: Response) {
 	try {
 		const data = await packageService.cruiseList();
@@ -72,4 +85,4 @@ async function updatePackageController(req: Request, res: Response) {
 	}
 }
 
-export default { listPackageController, createPackageController, cruiseListPackageController, detailPackageController, deleteCruiseController, updatePackageController };
+export default { listPackageController, createPackageController, cruiseListPackageController, detailPackageController, deleteCruiseController, updatePackageController, listPackagePaginatedController };

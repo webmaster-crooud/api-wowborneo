@@ -62,6 +62,35 @@ export const promotionService = {
 		});
 	},
 
+	async listPaginated(search?: string, page: number = 1): Promise<{ data: IPromotionResponse[]; total: number; currentPage: number; totalPages: number }> {
+		const itemPerPage = 10;
+		// Build the base filter
+		const filter: any = {};
+
+		if (search) {
+			filter.name = { contains: search };
+		}
+
+		filter.status = "ACTIVED";
+
+		const total = await prisma.promotion.count({ where: filter });
+		const data = await prisma.promotion.findMany({
+			where: filter,
+			orderBy: {
+				updatedAt: "desc",
+			},
+			take: itemPerPage,
+			skip: (page - 1) * itemPerPage,
+		});
+
+		return {
+			data,
+			total,
+			currentPage: page,
+			totalPages: Math.ceil(total / itemPerPage)
+		};
+	},
+
 	async delete(id: string) {
 		const checkPromotion = await prisma.promotion.count({
 			where: {

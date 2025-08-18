@@ -211,6 +211,82 @@ export const boatService = {
 
 		return result;
 	},
+	async getPaginated(
+		s?: string, // Search term
+		f: boolean = false, // Sort order flag for updatedAt (false = descending, true = ascending)
+		fav: boolean = false, // Extra favorite filter flag
+		deleted: boolean = false, // Show deleted items flag
+		page: number = 1 // Page number for pagination
+	): Promise<{ data: IListBoatResponse[]; total: number; currentPage: number; totalPages: number }> {
+		const itemPerPage = 10;
+
+		// Build the base filter
+		const filter: any = {};
+
+		// Add search condition if provided
+		if (s) {
+			filter.name = { contains: s };
+		}
+
+		// Handle status filtering
+		if (deleted) {
+			// When deleted is true, only show DELETED items
+			filter.status = "DELETED";
+		} else {
+			// Default view excludes deleted items
+			filter.status = {
+				not: "DELETED",
+			};
+		}
+
+		// Build the orderBy object to control sorting
+		let orderBy: any = {};
+
+		// If favorite prioritization is requested, sort by status first (putting FAVOURITED on top)
+		if (fav) {
+			orderBy = [
+				// This puts FAVOURITED status first
+				{
+					status: {
+						// Custom sort order: FAVOURITED first, then others
+						sort: {
+							FAVOURITED: 0,
+							_: 1, // All other statuses
+						},
+					},
+				},
+				// Then apply the requested date sorting
+				{ updatedAt: f ? "asc" : "desc" },
+			];
+		} else {
+			// Just use the date sorting if no favorite prioritization
+			orderBy = { updatedAt: f ? "asc" : "desc" };
+		}
+
+		// Perform the database query
+		const total = await prisma.boat.count({ where: filter });
+		const data = await prisma.boat.findMany({
+			where: filter,
+			select: {
+				id: true,
+				name: true,
+				slug: true,
+				status: true,
+				createdAt: true,
+				updatedAt: true,
+			},
+			orderBy: orderBy,
+			take: itemPerPage,
+			skip: (page - 1) * itemPerPage,
+		});
+
+		return {
+			data,
+			total,
+			currentPage: page,
+			totalPages: Math.ceil(total / itemPerPage)
+		};
+	},
 	async find(boatId: string): Promise<IDetailBoatResponse> {
 		// Pertama kita ambil data cruise beserta relasi
 		const boat = await prisma.boat.findUnique({

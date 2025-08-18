@@ -8,6 +8,7 @@ import { rateLimiter } from "../../../utils/rateLimiter";
 export const cruiseRoutes = express.Router();
 cruiseRoutes.post("/", authMiddleware, validate(cruiseValidation), rateLimiter, cruiseController.createController);
 cruiseRoutes.get("/", authMiddleware, cruiseController.getController);
+cruiseRoutes.get("/paginated", authMiddleware, cruiseController.getPaginatedController);
 cruiseRoutes.put("/:cruiseId", authMiddleware, validate(updateCruiseValidation), rateLimiter, cruiseController.updateController);
 cruiseRoutes.patch("/:cruiseId", authMiddleware, rateLimiter, cruiseController.actionController);
 cruiseRoutes.get("/:cruiseId", authMiddleware, cruiseController.findController);
