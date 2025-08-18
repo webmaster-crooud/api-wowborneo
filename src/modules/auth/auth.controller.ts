@@ -89,16 +89,16 @@ async function loginController(req: Request, res: Response) {
 		let redirectUrl = `/`; // Default redirect
 		switch (account.role.name) {
 			case "admin":
-				redirectUrl = "admin";
+				redirectUrl = "/";
 				break;
 			case "owner":
-				redirectUrl = "owner";
+				redirectUrl = "/";
 				break;
 			case "developer":
-				redirectUrl = "developer";
+				redirectUrl = "/";
 				break;
 			default:
-				redirectUrl = `member`;
+				redirectUrl = `/`;
 		}
 
 		const data = {

@@ -278,7 +278,7 @@ model Experience {
 model Facility {
   id Int @db.Int @id @default(autoincrement())
   name String @db.VarChar(100) 
-  description String? @db.VarChar(100)
+  description String? @db.Text
   icon String? @db.VarChar(100)
   boatId String @db.VarChar(100) @map("boat_id")
   

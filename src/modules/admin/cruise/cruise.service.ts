@@ -477,7 +477,7 @@ export const cruiseService = {
 			data,
 			total,
 			currentPage: page,
-			totalPages: Math.ceil(total / itemPerPage)
+			totalPages: Math.ceil(total / itemPerPage),
 		};
 	},
 
