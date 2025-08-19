@@ -122,6 +122,7 @@ export const scheduleService = {
 								id: true,
 								maxCapacity: true,
 								price: true,
+								duration: true,
 							},
 						},
 					},
@@ -131,12 +132,22 @@ export const scheduleService = {
 						id: true,
 						title: true,
 						departure: true,
+						duration: true,
 					},
 				},
 			},
 			orderBy: { createdAt: "desc" },
 			take: 10,
 		});
+
+		// Filter the cabins in place
+		// Filter the cabins in place
+		for (const item of schedules) {
+			const cruiseDuration = parseInt(item.cruise.duration);
+			item.boat.cabins = item.boat.cabins.filter(
+				(cabin) => parseInt(cabin.duration) === cruiseDuration
+			);
+		}
 
 		// 2. Ambil semua ID cabin dan schedule untuk query booking
 		const cabinIds = schedules.flatMap((s) => s.boat.cabins.map((c) => c.id));
