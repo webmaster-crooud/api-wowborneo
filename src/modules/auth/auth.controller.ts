@@ -86,23 +86,9 @@ async function loginController(req: Request, res: Response) {
 		if (!body) throw new ApiError(StatusCodes.BAD_GATEWAY, "Login gagal!");
 		const result = await authService.login(body);
 		const { account } = result;
-		let redirectUrl = `/`; // Default redirect
-		switch (account.role.name) {
-			case "admin":
-				redirectUrl = "/";
-				break;
-			case "owner":
-				redirectUrl = "/";
-				break;
-			case "developer":
-				redirectUrl = "/";
-				break;
-			default:
-				redirectUrl = `/`;
-		}
 
 		const data = {
-			redirect: env.DASHBOARD_URL + "/" + redirectUrl,
+			redirect: env.DASHBOARD_URL,
 			account: {
 				email: account.email,
 				firstName: account.user.firstName,
