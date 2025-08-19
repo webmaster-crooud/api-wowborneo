@@ -51,6 +51,7 @@ export interface CruiseMinimal {
 	description: string;
 	cover: string;
 	duration: string;
+	minPrice: number;
 }
 export interface CruisePage {
 	title: string;

@@ -324,6 +324,41 @@ export const cruiseService = {
 					},
 				});
 
+				// Get the current year
+				const currentYear = new Date().getFullYear();
+
+				// Find the minimum price from cabins for schedules this year
+				const schedules = await prisma.schedule.findMany({
+					where: {
+						cruiseId: cruise.id,
+						departureAt: {
+							gte: new Date(`${currentYear}-01-01T00:00:00Z`),
+							lt: new Date(`${currentYear + 1}-01-01T00:00:00Z`),
+						},
+						status: {
+							notIn: ["DELETED"],
+						}
+					},
+					include: {
+						boat: {
+							include: {
+								cabins: {
+									where: {
+										duration: Number(cruise.duration)
+									},
+									select: {
+										price: true
+									}
+								}
+							}
+						}
+					}
+				});
+
+				// Flatten the prices and find the minimum value
+				const allPrices = schedules.flatMap(s => s.boat.cabins.map(c => c.price));
+				const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : 0;
+
 				return {
 					title: cruise.title,
 					description: cruise.description || "",
@@ -331,6 +366,7 @@ export const cruiseService = {
 					cover: cruiseCover?.source || "",
 					coverAlt: cruiseCover?.alt || "",
 					duration: cruise.duration || "",
+					minPrice: minPrice,
 				};
 			}));
 
