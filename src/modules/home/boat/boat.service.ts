@@ -144,6 +144,11 @@ export class BoatService {
 
 		if (!boat) throw new ApiError(StatusCodes.NOT_FOUND, "Boat is not found!");
 
+		// Filter unique cabins by title
+		const uniqueCabins = boat.cabins.filter((cabin: typeof boat.cabins[0], index: number, array: typeof boat.cabins) =>
+			array.findIndex((c: typeof boat.cabins[0]) => c.title === cabin.title) === index
+		);
+
 		// Ambil cover cruise
 		const boatCover = await prisma.image.findFirst({
 			where: {
@@ -211,13 +216,15 @@ export class BoatService {
 		});
 
 		// Tambahkan cover ke setiap destination
-		const cabinWithCover = boat.cabins.map((cabin) => {
+		const cabinWithCover = uniqueCabins.map((cabin) => {
 			const cover = cabinCovers.find((cover) => cover.entityId === String(cabin.id));
 			return {
+				name: cabin.name,
 				type: cabin.type,
 				cover: cover?.source || "",
 				description: cabin.description || "",
 				price: cabin.price?.toString() || "",
+				duration: cabin.duration,
 			};
 		});
 

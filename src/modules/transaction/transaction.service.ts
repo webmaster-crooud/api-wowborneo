@@ -18,15 +18,28 @@ export const transactionService = {
 			year = m.getFullYear();
 			mon = m.getMonth() + 1;
 		}
-		return await prisma.$queryRaw`SELECT s.id, s.departure_at AS departureAt, s.arrival_at AS arrivalAt, s.duration_day AS duration, s.status, c.title as cruiseTitle, c.departure, b.name as boatName, cover.source as cover, MIN(cab.price) AS minPrice, SUM(cab.max_capacity) as maxCapacity
-					FROM schedules s 
+		const result = await prisma.$queryRaw`SELECT DISTINCT
+						s.id,
+						s.departure_at AS departureAt,
+						s.arrival_at AS arrivalAt,
+						s.duration_day AS duration,
+						s.status,
+						c.title as cruiseTitle,
+						c.departure,
+						b.name as boatName,
+						cover.source as cover,
+						MIN(cab.price) AS minPrice,
+						SUM(cab.max_capacity) as maxCapacity
+					FROM schedules s
 					JOIN (SELECT title, departure, id FROM river_cruise as c) c ON c.id = s.cruise_id
 					JOIN (SELECT id, name FROM boats as b) b ON b.id = s.boat_id
-					LEFT JOIN (
-								SELECT source, entity_id FROM images AS cover
-								WHERE entity_type = "CRUISE" AND image_type = "COVER"
-							) cover ON cover.entity_id = s.cruise_id
-					LEFT JOIN (SELECT boat_id, price, max_capacity FROM cabins as cab) cab ON cab.boat_id = b.id
+					LEFT JOIN images cover ON
+						cover.entity_id = s.cruise_id AND
+						cover.entity_type = 'CRUISE' AND
+						cover.image_type = 'COVER'
+					LEFT JOIN cabins cab ON
+						cab.boat_id = b.id AND
+						cab.duration = s.duration_day
 					WHERE s.departure_at >= ${now}
 					AND s.status NOT IN ('PENDING', 'DELETED')
 					${cruiseId ? Prisma.sql`AND s.cruise_id = ${cruiseId}` : Prisma.empty}
@@ -40,11 +53,20 @@ export const transactionService = {
 					}
 					GROUP BY
 						s.id,
+						s.departure_at,
+						s.arrival_at,
+						s.duration_day,
+						s.status,
+						c.title,
+						c.departure,
+						b.name,
 						cover.source
 					${pax ? Prisma.sql`HAVING SUM(cab.max_capacity) >= ${pax}` : Prisma.empty}
 					ORDER BY s.updated_at DESC
 					LIMIT 10
 		`;
+
+		return result;
 	},
 
 	// List Cruise
@@ -73,14 +95,8 @@ export const transactionService = {
 			where: { scheduleId },
 		});
 
-		// Siapkan filter untuk cabins
-		const cabinsFilter =
-			countBooking === 0
-				? { type: "SUPER" as TYPECABIN } // jika belum ada booking → hanya tipe SUPER
-				: { bookings: { none: { scheduleId } } }; // jika sudah ada booking → yang belum dipesan
-
 		// Kemudian panggil Prisma dengan filter dinamis
-		const result = await prisma.schedule.findFirst({
+		const schedule = await prisma.schedule.findFirst({
 			where: { id: scheduleId },
 			select: {
 				id: true,
@@ -98,22 +114,41 @@ export const transactionService = {
 						facilities: {
 							select: { name: true, icon: true, description: true },
 						},
-						cabins: {
-							where: cabinsFilter, // ← filter di‐sini
-							select: {
-								id: true,
-								name: true,
-								maxCapacity: true,
-								price: true,
-								type: true,
-								description: true,
-							},
-							orderBy: { price: "desc" },
-						},
 					},
 				},
 			},
 		});
+
+		// Siapkan filter untuk cabins
+		const cabinsFilter = {
+			...(countBooking === 0
+				? { type: "SUPER" as TYPECABIN } // jika belum ada booking → hanya tipe SUPER
+				: { bookings: { none: { scheduleId } } } // jika sudah ada booking → yang belum dipesan
+			),
+			boatId: schedule.boat.id,
+			duration: { equals: Number(schedule.cruise.duration) },
+		};
+		const cabins = await prisma.cabin.findMany({
+			where: cabinsFilter,
+			select: {
+				id: true,
+				name: true,
+				maxCapacity: true,
+				price: true,
+				type: true,
+				description: true,
+				duration: true,
+			},
+			orderBy: { price: "desc" },
+		});
+
+		const result = {
+			...schedule,
+			boat: {
+				...schedule.boat,
+				cabins: cabins
+			}
+		};
 
 		const coverCruise = await prisma.image.findFirst({
 			where: {

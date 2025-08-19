@@ -8,6 +8,7 @@ export interface ICabinRequestBody {
 	maxCapacity: number;
 	description: string | null;
 	price: string;
+	duration: number;
 }
 export interface ICabinResponse {
 	id: string | number;
@@ -16,5 +17,6 @@ export interface ICabinResponse {
 	maxCapacity: number;
 	description: string | null;
 	price: string | Decimal;
+	duration: number;
 	cover: IImage | null;
 }

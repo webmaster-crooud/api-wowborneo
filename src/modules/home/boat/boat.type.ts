@@ -41,10 +41,12 @@ export interface IBoatDetail {
 	abouts: IAboutBoat[];
 	facilities: IFacility[];
 	cabins: {
+		name: string;
 		type: TYPECABIN;
 		cover: string;
 		description: string;
 		price: string;
+		duration: number;
 	}[];
 	experiences: IExperience[];
 	deck: {

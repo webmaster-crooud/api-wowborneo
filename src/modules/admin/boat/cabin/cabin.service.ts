@@ -27,6 +27,7 @@ export const cabinService = {
 				maxCapacity: body.maxCapacity,
 				price: body.price,
 				type: body.type,
+				duration: body.duration,
 				boat: {
 					connect: {
 						id: boatId,
@@ -52,6 +53,7 @@ export const cabinService = {
 				maxCapacity: body.maxCapacity,
 				price: body.price,
 				type: body.type,
+				duration: body.duration,
 			},
 		});
 	},

@@ -267,6 +267,7 @@ export const scheduleService = {
 								price: true,
 								type: true,
 								description: true,
+								duration: true,
 							},
 							orderBy: {
 								price: "desc",
@@ -345,6 +346,7 @@ export const scheduleService = {
 				departure: result?.cruise.departure || "",
 				title: result?.cruise.title || "",
 				description: result?.cruise.description || "",
+				duration: result?.cruise.duration || "",
 			},
 			boat: {
 				id: result?.boat.id || "",
@@ -352,6 +354,7 @@ export const scheduleService = {
 				cabins:
 					result?.boat.cabins?.map((cabin) => ({
 						name: cabin.name,
+						duration: cabin.duration,
 						description: cabin.description,
 						maxCapacity: cabin.maxCapacity,
 						price: String(cabin.price),

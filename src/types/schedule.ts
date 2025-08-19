@@ -37,6 +37,7 @@ export interface IDetailScheduleResponse {
 		cover: string | null;
 		departure: string;
 		description: string;
+		duration: number;
 	};
 	boat: {
 		name: string;
@@ -44,7 +45,7 @@ export interface IDetailScheduleResponse {
 		deck: {
 			cover: string | null;
 		};
-		cabins: Array<{ id: string | number; name: string; type: TYPECABIN; maxCapacity: number; description: string | null; price: string }>;
+		cabins: Array<{ id: string | number; name: string; type: TYPECABIN; maxCapacity: number; description: string | null; price: string; duration: number }>;
 	};
 	bookingCabins: Array<{
 		cabinId: string | number;
