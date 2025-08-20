@@ -133,6 +133,7 @@ export class BoatService {
 		// Pertama kita ambil data cruise beserta relasi
 		const boat = await prisma.boat.findUnique({
 			where: { slug },
+
 			include: {
 				abouts: true,
 				cabins: true,
@@ -145,9 +146,7 @@ export class BoatService {
 		if (!boat) throw new ApiError(StatusCodes.NOT_FOUND, "Boat is not found!");
 
 		// Filter unique cabins by title
-		const uniqueCabins = boat.cabins.filter((cabin: typeof boat.cabins[0], index: number, array: typeof boat.cabins) =>
-			array.findIndex((c: typeof boat.cabins[0]) => c.title === cabin.title) === index
-		);
+		const uniqueCabins = boat.cabins.filter((cabin: (typeof boat.cabins)[0], index: number, array: typeof boat.cabins) => array.findIndex((c: (typeof boat.cabins)[0]) => c.name === cabin.name) === index);
 
 		// Ambil cover cruise
 		const boatCover = await prisma.image.findFirst({

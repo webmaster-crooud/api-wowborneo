@@ -144,9 +144,7 @@ export const scheduleService = {
 		// Filter the cabins in place
 		for (const item of schedules) {
 			const cruiseDuration = parseInt(item.cruise.duration);
-			item.boat.cabins = item.boat.cabins.filter(
-				(cabin) => parseInt(cabin.duration) === cruiseDuration
-			);
+			item.boat.cabins = item.boat.cabins.filter((cabin) => cabin.duration === cruiseDuration);
 		}
 
 		// 2. Ambil semua ID cabin dan schedule untuk query booking
@@ -357,7 +355,7 @@ export const scheduleService = {
 				departure: result?.cruise.departure || "",
 				title: result?.cruise.title || "",
 				description: result?.cruise.description || "",
-				duration: result?.cruise.duration || "",
+				duration: Number(result?.cruise.duration) || 0,
 			},
 			boat: {
 				id: result?.boat.id || "",

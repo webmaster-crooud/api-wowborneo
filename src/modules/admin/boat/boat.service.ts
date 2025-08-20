@@ -284,7 +284,7 @@ export const boatService = {
 			data,
 			total,
 			currentPage: page,
-			totalPages: Math.ceil(total / itemPerPage)
+			totalPages: Math.ceil(total / itemPerPage),
 		};
 	},
 	async find(boatId: string): Promise<IDetailBoatResponse> {

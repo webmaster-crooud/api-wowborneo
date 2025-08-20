@@ -143,21 +143,21 @@ export const cruiseService = {
 		});
 
 		// Ambil galeri cruise (photos)
-		const cruiseGallery = await prisma.image.findMany({
-			where: {
-				entityId: String(cruise.id),
-				entityType: "CRUISE",
-				imageType: "PHOTO",
-			},
-			select: {
-				id: true,
-				entityId: true,
-				entityType: true,
-				imageType: true,
-				source: true,
-				alt: true,
-			},
-		});
+		// const cruiseGallery = await prisma.image.findMany({
+		// 	where: {
+		// 		entityId: String(cruise.id),
+		// 		entityType: "CRUISE",
+		// 		imageType: "PHOTO",
+		// 	},
+		// 	select: {
+		// 		id: true,
+		// 		entityId: true,
+		// 		entityType: true,
+		// 		imageType: true,
+		// 		source: true,
+		// 		alt: true,
+		// 	},
+		// });
 
 		// Ambil semua gambar cover untuk destinations
 		const destinationCovers = await prisma.image.findMany({
@@ -264,28 +264,30 @@ export const cruiseService = {
 		});
 
 		// Fetch cover images for each cruise
-		const cruisesWithCover = await Promise.all(result.map(async (cruise) => {
-			const cruiseCover = await prisma.image.findFirst({
-				where: {
-					entityId: String(cruise.id),
-					entityType: "CRUISE",
-					imageType: "COVER",
-				},
-				select: {
-					source: true,
-					alt: true,
-				},
-			});
+		const cruisesWithCover = await Promise.all(
+			result.map(async (cruise) => {
+				const cruiseCover = await prisma.image.findFirst({
+					where: {
+						entityId: String(cruise.id),
+						entityType: "CRUISE",
+						imageType: "COVER",
+					},
+					select: {
+						source: true,
+						alt: true,
+					},
+				});
 
-			return {
-				title: cruise.title,
-				description: cruise.description || "",
-				slug: cruise.slug,
-				cover: cruiseCover?.source || "",
-				coverAlt: cruiseCover?.alt || "",
-				duration: cruise.duration || "",
-			};
-		}));
+				return {
+					title: cruise.title,
+					description: cruise.description || "",
+					slug: cruise.slug,
+					cover: cruiseCover?.source || "",
+					coverAlt: cruiseCover?.alt || "",
+					duration: cruise.duration || "",
+				};
+			})
+		);
 
 		return cruisesWithCover;
 	},
@@ -306,76 +308,78 @@ export const cruiseService = {
 			},
 		});
 
-		const packagesWithCruises = await Promise.all(result.map(async (pkg) => {
-			const activeCruises = pkg.packageCruise
-				.filter(pc => pc.cruises && !["BLOCKED", "PENDING", "DELETED"].includes(pc.cruises.status))
-				.map(pc => pc.cruises);
+		const packagesWithCruises = await Promise.all(
+			result.map(async (pkg) => {
+				const activeCruises = pkg.packageCruise.filter((pc) => pc.cruises && !["BLOCKED", "PENDING", "DELETED"].includes(pc.cruises.status)).map((pc) => pc.cruises);
 
-			const cruisesWithCover = await Promise.all(activeCruises.map(async (cruise) => {
-				const cruiseCover = await prisma.image.findFirst({
-					where: {
-						entityId: String(cruise.id),
-						entityType: "CRUISE",
-						imageType: "COVER",
-					},
-					select: {
-						source: true,
-						alt: true,
-					},
-				});
+				const cruisesWithCover = await Promise.all(
+					activeCruises.map(async (cruise) => {
+						const cruiseCover = await prisma.image.findFirst({
+							where: {
+								entityId: String(cruise.id),
+								entityType: "CRUISE",
+								imageType: "COVER",
+							},
+							select: {
+								source: true,
+								alt: true,
+							},
+						});
 
-				// Get the current year
-				const currentYear = new Date().getFullYear();
+						// Get the current year
+						const currentYear = new Date().getFullYear();
 
-				// Find the minimum price from cabins for schedules this year
-				const schedules = await prisma.schedule.findMany({
-					where: {
-						cruiseId: cruise.id,
-						departureAt: {
-							gte: new Date(`${currentYear}-01-01T00:00:00Z`),
-							lt: new Date(`${currentYear + 1}-01-01T00:00:00Z`),
-						},
-						status: {
-							notIn: ["DELETED"],
-						}
-					},
-					include: {
-						boat: {
+						// Find the minimum price from cabins for schedules this year
+						const schedules = await prisma.schedule.findMany({
+							where: {
+								cruiseId: cruise.id,
+								departureAt: {
+									gte: new Date(`${currentYear}-01-01T00:00:00Z`),
+									lt: new Date(`${currentYear + 1}-01-01T00:00:00Z`),
+								},
+								status: {
+									notIn: ["DELETED"],
+								},
+							},
 							include: {
-								cabins: {
-									where: {
-										duration: Number(cruise.duration)
+								boat: {
+									include: {
+										cabins: {
+											where: {
+												duration: Number(cruise.duration),
+											},
+											select: {
+												price: true,
+											},
+										},
 									},
-									select: {
-										price: true
-									}
-								}
-							}
-						}
-					}
-				});
+								},
+							},
+						});
 
-				// Flatten the prices and find the minimum value
-				const allPrices = schedules.flatMap(s => s.boat.cabins.map(c => c.price));
-				const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : 0;
+						// Flatten the prices and find the minimum value
+						const allPrices = schedules.flatMap((s) => s.boat.cabins.map((c) => Number(c.price)));
+						const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : 0;
+
+						return {
+							title: cruise.title,
+							description: cruise.description || "",
+							slug: cruise.slug,
+							cover: cruiseCover?.source || "",
+							coverAlt: cruiseCover?.alt || "",
+							duration: cruise.duration || "",
+							minPrice: minPrice,
+						};
+					})
+				);
 
 				return {
-					title: cruise.title,
-					description: cruise.description || "",
-					slug: cruise.slug,
-					cover: cruiseCover?.source || "",
-					coverAlt: cruiseCover?.alt || "",
-					duration: cruise.duration || "",
-					minPrice: minPrice,
+					title: pkg.title,
+					description: pkg.description || "",
+					cruises: cruisesWithCover,
 				};
-			}));
-
-			return {
-				title: pkg.title,
-				description: pkg.description || "",
-				cruises: cruisesWithCover,
-			};
-		}));
+			})
+		);
 
 		return packagesWithCruises;
 	},

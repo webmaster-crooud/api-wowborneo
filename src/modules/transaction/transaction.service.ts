@@ -66,7 +66,7 @@ export const transactionService = {
 					LIMIT 10
 		`;
 
-		return result;
+		return result as ITransactionScheduleResponse[];
 	},
 
 	// List Cruise
@@ -123,10 +123,9 @@ export const transactionService = {
 		const cabinsFilter = {
 			...(countBooking === 0
 				? { type: "SUPER" as TYPECABIN } // jika belum ada booking → hanya tipe SUPER
-				: { bookings: { none: { scheduleId } } } // jika sudah ada booking → yang belum dipesan
-			),
-			boatId: schedule.boat.id,
-			duration: { equals: Number(schedule.cruise.duration) },
+				: { bookings: { none: { scheduleId } } }), // jika sudah ada booking → yang belum dipesan
+			boatId: schedule?.boat.id,
+			duration: { equals: Number(schedule?.cruise.duration) },
 		};
 		const cabins = await prisma.cabin.findMany({
 			where: cabinsFilter,
@@ -145,14 +144,14 @@ export const transactionService = {
 		const result = {
 			...schedule,
 			boat: {
-				...schedule.boat,
-				cabins: cabins
-			}
+				...schedule?.boat,
+				cabins: cabins,
+			},
 		};
 
 		const coverCruise = await prisma.image.findFirst({
 			where: {
-				entityId: result?.cruise.id,
+				entityId: result?.cruise?.id,
 				entityType: "CRUISE",
 				imageType: "COVER",
 			},
@@ -163,7 +162,7 @@ export const transactionService = {
 
 		const galleriesCruise = await prisma.image.findMany({
 			where: {
-				entityId: result?.cruise.id,
+				entityId: result?.cruise?.id,
 				entityType: "CRUISE",
 				imageType: "PHOTO",
 			},
@@ -214,13 +213,13 @@ export const transactionService = {
 			arrivalAt: result?.arrivalAt || "",
 			departureAt: result?.departureAt || "",
 			cruise: {
-				id: result?.cruise.id || "",
+				id: result?.cruise?.id || "",
 				cover: coverCruise?.source || null,
-				departure: result?.cruise.departure || "",
-				title: result?.cruise.title || "",
-				description: result?.cruise.description || "",
+				departure: result?.cruise?.departure || "",
+				title: result?.cruise?.title || "",
+				description: result?.cruise?.description || "",
 				galleries: galleriesCruise || [],
-				duration: Number(result?.cruise.duration) || 0,
+				duration: Number(result?.cruise?.duration) || 0,
 			},
 			min_price: result ? Math.min(...result.boat.cabins.map((cabin) => Number(cabin.price))) : 0,
 			boat: {
@@ -228,7 +227,7 @@ export const transactionService = {
 				name: result?.boat.name || "",
 				cabins: cabinWithCover || [],
 				facilities:
-					result?.boat.facilities.map((facility) => ({
+					result?.boat.facilities?.map((facility) => ({
 						name: facility.name || "",
 						description: facility.description || "",
 						icon: facility.icon || "",
