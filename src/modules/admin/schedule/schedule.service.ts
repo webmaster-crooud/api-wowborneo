@@ -25,19 +25,19 @@ export const scheduleService = {
 		endOfDay.setUTCDate(startOfDay.getUTCDate() + 1); // Start of next day
 
 		// 2. Check for existing schedules within the same day
-		const countCruise = await prisma.schedule.count({
-			where: {
-				cruise: { id: body.cruiseId },
-				departureAt: {
-					gte: startOfDay, // Greater than or equal to start of day
-					lt: endOfDay, // Less than next day
-				},
-			},
-		});
+		// const countCruise = await prisma.schedule.count({
+		// 	where: {
+		// 		cruise: { id: body.cruiseId },
+		// 		departureAt: {
+		// 			gte: startOfDay, // Greater than or equal to start of day
+		// 			lt: endOfDay, // Less than next day
+		// 		},
+		// 	},
+		// });
 
-		if (countCruise > 0) {
-			throw new ApiError(StatusCodes.BAD_REQUEST, "Cruise already exists for this date");
-		}
+		// if (countCruise > 0) {
+		// 	throw new ApiError(StatusCodes.BAD_REQUEST, "Cruise already exists for this date");
+		// }
 
 		// 3. Ambil durasi Cruise
 		const cruise = await prisma.cruise.findUnique({
