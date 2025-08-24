@@ -35,6 +35,7 @@ export const cartService = {
 								id: true,
 								price: true,
 								maxCapacity: true,
+								type: true,
 							},
 						},
 					},
@@ -65,6 +66,7 @@ export const cartService = {
 				email: account?.email || "",
 				scheduleId: schedule.id,
 				pax: body.pax,
+				type: findCabin.type,
 				cabinId: findCabin.id.toString(),
 				price: countBooking === 0 ? String(Number(findCabin.price) * findCabin.maxCapacity) : findCabin.price.toString(),
 				cruise: {
@@ -155,6 +157,11 @@ export const cartService = {
 			},
 		});
 
+		// Hitung dulu jumlah booking
+		const countBooking = await prisma.booking.count({
+			where: { scheduleId },
+		});
+
 		const guestsData: IGuestRequest[] = await Promise.all(
 			body.map(async (g) => {
 				const findGuest = await prisma.guest.findFirst({
@@ -184,7 +191,7 @@ export const cartService = {
 						country: findGuest.country,
 						document: findGuest.document || "",
 						phone: findGuest.phone || "",
-						price: findGuest.type === "CHILD" ? 0.5 * Number(transaction.price) : transaction.price,
+						price: countBooking !== 0 && findGuest.type === "CHILD" ? 0.5 * Number(transaction.price) : transaction.price,
 						signature: g.signature,
 					};
 				} else {
@@ -193,17 +200,23 @@ export const cartService = {
 						// Update nanti
 						document: "",
 						children: g.children ? true : false,
-						price: g.children ? 0.5 * Number(transaction.price) : transaction.price,
+						price: countBooking !== 0 && g.children ? 0.5 * Number(transaction.price) : transaction.price,
 					};
 				}
 
 				return result;
 			})
 		);
+
+		// Update the calculation if it the first super cabin book
 		const { totalPrice, countID, countNonID } = guestsData.reduce(
-			(acc, g) => {
-				const p = Number(g.price);
-				acc.totalPrice += p;
+			(acc, g, index) => {
+				if (countBooking === 0 && index === 0) {
+					acc.totalPrice += Number(g.price);
+				} else if (countBooking !== 0) {
+					acc.totalPrice += Number(g.price);
+				}
+
 				g.country.toLowerCase() === "indonesia" ? acc.countID++ : acc.countNonID++;
 				return acc;
 			},
@@ -211,7 +224,7 @@ export const cartService = {
 		);
 
 		// 2. Hitung komisi & totals
-		const subTotal = Number(transaction.addonPrice) + totalPrice;
+		const subTotal = (transaction.addonPrice ? Number(transaction.addonPrice) : 0) + totalPrice;
 		const commission = agent ? (countID >= body.length ? agent.commissionLocal : agent.commission) : 0;
 		const discountAmt = subTotal * (commission / 100);
 		const finalTotal = subTotal - discountAmt;
@@ -221,9 +234,9 @@ export const cartService = {
 			...transaction,
 			guests: guestsData,
 			guestPrice: totalPrice,
-			subTotal,
+			subTotal: subTotal,
 			discount: commission,
-			finalTotal,
+			finalTotal: finalTotal,
 			pax: body.length,
 			method: "full",
 			amountPayment: finalTotal,

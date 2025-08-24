@@ -4,6 +4,7 @@ export interface ISetCartRequest {
 	cabinId: number;
 	scheduleId: string;
 	pax: number;
+	type: string;
 }
 
 export interface ICartResponse {
@@ -11,6 +12,7 @@ export interface ICartResponse {
 	cabinId: string;
 	scheduleId: string;
 	pax: number;
+	type: string;
 	addons: Array<IAddonRequest>;
 	guests: Array<IGuestRequest>;
 	guestPrice?: string | number;
