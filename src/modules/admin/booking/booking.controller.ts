@@ -53,4 +53,13 @@ async function checkinController(req: Request, res: Response) {
 	}
 }
 
-export default { listController, detailController, confirmedController, checkinController };
+async function getTodayBookingCountController(req: Request, res: Response) {
+	try {
+		const result = await bookingService.getTodayBookingCount();
+		ApiResponse.sendSuccess(res, result, StatusCodes.OK);
+	} catch (error) {
+		ApiResponse.sendError(res, error as Error);
+	}
+}
+
+export default { listController, detailController, confirmedController, checkinController, getTodayBookingCountController };

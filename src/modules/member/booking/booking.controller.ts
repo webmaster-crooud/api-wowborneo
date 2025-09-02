@@ -33,4 +33,14 @@ async function detailController(req: Request, res: Response) {
 	}
 }
 
-export default { listController, detailController, listRefundController };
+async function upcomingController(req: Request, res: Response) {
+	try {
+		const { accountId } = req.user;
+		const data = await bookingService.upcoming(accountId);
+		ApiResponse.sendSuccess(res, data, StatusCodes.OK);
+	} catch (error) {
+		ApiResponse.sendError(res, error as Error);
+	}
+}
+
+export default { listController, detailController, listRefundController, upcomingController };

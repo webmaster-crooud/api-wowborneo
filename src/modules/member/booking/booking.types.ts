@@ -70,3 +70,16 @@ export interface IMemberBookingDetailResponse {
 
 	refund?: IRefundBookingResponse | null;
 }
+
+export interface IUpcomingBookingResponse {
+	id: string;
+	cruiseTitle: string;
+	finalPrice: string | number | Decimal;
+	bookingStatus: BOOKING_STATUS;
+	paymentStatus: PAYMENT_STATUS;
+	schedule: {
+		departureAt: string | Date;
+		arrivalAt: string | Date;
+		departure: string;
+	};
+}

@@ -306,6 +306,26 @@ const bookingService = {
 			},
 		});
 	},
+
+	async getTodayBookingCount(): Promise<number> {
+		const today = new Date();
+		// Set to start of day (00:00:00)
+		const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+		// Set to end of day (23:59:59)
+		const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+		return await prisma.booking.count({
+			where: {
+				bookingStatus: {
+					notIn: ["CANCELLED"],
+				},
+				createdAt: {
+					gte: startOfDay,
+					lte: endOfDay,
+				},
+			},
+		});
+	}
 };
 
 export default bookingService;

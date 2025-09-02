@@ -1,7 +1,7 @@
 import { StatusCodes } from "http-status-codes";
 import prisma from "../../../configs/database";
 import { ApiError } from "../../../libs/apiResponse";
-import { IMemberBookingDetailResponse, IMemberBookingListResponse } from "./booking.types";
+import { IMemberBookingDetailResponse, IMemberBookingListResponse, IUpcomingBookingResponse } from "./booking.types";
 
 export const bookingService = {
 	async account(accountId: string): Promise<{ email: string } | null> {
@@ -305,6 +305,63 @@ export const bookingService = {
 			},
 			createdAt: data.createdAt,
 		}));
+		return formatedData;
+	},
+
+	async upcoming(accountId: string): Promise<IUpcomingBookingResponse[]> {
+		const account = await this.account(accountId);
+		const now = new Date();
+
+		const bookingList = await prisma.booking.findMany({
+			where: {
+				email: account?.email,
+				schedule: {
+					arrivalAt: {
+						gte: now,
+					},
+				},
+			},
+			select: {
+				id: true,
+				cruiseTitle: true,
+				finalPrice: true,
+				paymentStatus: true,
+				bookingStatus: true,
+				schedule: {
+					select: {
+						arrivalAt: true,
+						departureAt: true,
+						cruise: {
+							select: {
+								departure: true,
+							},
+						},
+					},
+				},
+				createdAt: true,
+			},
+			orderBy: {
+				schedule: {
+					departureAt: "asc",
+				},
+			},
+			take: 10,
+		});
+
+		const formatedData: IUpcomingBookingResponse[] = bookingList.map((data) => ({
+			id: data.id,
+			cruiseTitle: data.cruiseTitle,
+			finalPrice: data.finalPrice,
+			paymentStatus: data.paymentStatus,
+			bookingStatus: data.bookingStatus,
+			schedule: {
+				arrivalAt: data.schedule.arrivalAt,
+				departureAt: data.schedule.departureAt,
+				departure: data.schedule.cruise.departure || "",
+			},
+			createdAt: data.createdAt,
+		}));
+
 		return formatedData;
 	},
 };
