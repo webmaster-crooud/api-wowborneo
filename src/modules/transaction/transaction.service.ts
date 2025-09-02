@@ -62,7 +62,7 @@ export const transactionService = {
 						b.name,
 						cover.source
 					${pax ? Prisma.sql`HAVING SUM(cab.max_capacity) >= ${pax}` : Prisma.empty}
-					ORDER BY s.updated_at DESC
+					ORDER BY s.updated_at ASC
 					LIMIT 10
 		`;
 
